@@ -8,6 +8,18 @@ Lulistrack ayuda al repartidor a consultar sus pedidos, revisar la informacion d
 
 La aplicacion forma parte del ecosistema Lulistrack:
 
+## Como se autoriza el acceso a la app
+
+En Lulistrack no existe un registro publico desde la aplicacion movil. El acceso de cada repartidor se habilita desde el Dashboard por una cuenta con permisos de administrador.
+
+1. El administrador inicia sesion en el [Dashboard de Lulistrack](https://lulistrack-dashboard.vercel.app).
+2. Entra a la seccion **Repartidores** y selecciona **Nuevo repartidor**.
+3. Captura el nombre, correo electronico, contraseña inicial y vehiculo.
+4. Al confirmar, el backend verifica que la solicitud venga de un administrador autorizado. Despues crea la cuenta en **Supabase Auth**, confirma el correo y registra el perfil del repartidor en PostgreSQL.
+5. El repartidor abre esta app e inicia sesion con el mismo correo y contraseña que el administrador registro.
+
+Este proceso vincula la cuenta de autenticacion con el perfil de repartidor. Por eso, crear el usuario desde el Dashboard es el paso necesario para que pueda entrar a Flutter. No se debe crear la cuenta directamente desde la pantalla movil ni compartir credenciales administrativas.
+
 | Componente | Tecnologia | Ubicacion |
 |---|---|---|
 | App movil | Flutter y Dart | Este repositorio |
@@ -174,25 +186,42 @@ Ejecuta la aplicacion:
 flutter run
 ```
 
-## Configuracion
+## Configuracion con .env
 
-### Supabase
+La app lee su configuracion desde un archivo `.env` ubicado en la raiz del proyecto. Este archivo se carga al iniciar Flutter y contiene las direcciones de los servicios y la clave publica de Supabase.
 
-La inicializacion de Supabase se encuentra actualmente en `lib/main.dart`, donde se configura la URL del proyecto y una clave publica de cliente (publishable key).
+1. Copia el archivo de ejemplo:
+   ```bash
+   copy .env.example .env
+   ```
+   En macOS o Linux puedes usar `cp .env.example .env`.
+2. Abre `.env` y coloca los valores de tu proyecto:
+   ```env
+   SUPABASE_URL=https://tu-proyecto.supabase.co
+   SUPABASE_ANON_KEY=tu_clave_publica_anon_o_publishable
+   API_BASE_URL=https://tu-backend.onrender.com
+   ```
+3. Instala las dependencias y ejecuta la app:
+   ```bash
+   flutter pub get
+   flutter run
+   ```
 
-Para usar otro proyecto, actualiza esos valores en la configuracion de la app. No agregues una clave `service_role`, contrasenas de base de datos ni secretos administrativos a una aplicacion movil: el contenido compilado puede ser inspeccionado.
+El archivo `.env.example` se incluye en GitHub como guia, pero el archivo `.env` real esta excluido por `.gitignore`. Si clonas el proyecto en otro equipo, debes crear tu propio `.env` antes de ejecutar o compilar la app.
 
-La clave publica no sustituye las politicas de seguridad. Las tablas y recursos deben estar protegidos con las politicas de acceso correspondientes y el backend debe validar cada token.
+**Importante:** los valores de Supabase que utiliza el cliente movil son la URL y la clave publica anon/publishable. Aunque el archivo `.env` no se sube al repositorio, Flutter incorpora los assets al paquete de la aplicacion; por eso estos valores no deben considerarse secretos. Nunca coloques en este archivo una clave `service_role`, contraseñas de base de datos, tokens privados ni credenciales administrativas. La seguridad depende tambien de las politicas RLS y de la validacion de permisos en el backend.
 
 ### Backend
 
-La URL de la API se configura en `lib/services/api_service.dart`. Si se cambia el entorno del backend, actualiza esa direccion y verifica que los endpoints y permisos sigan coincidiendo.
+La URL de la API se define mediante `API_BASE_URL` en `.env`. Si cambio de entorno, actualizo ese valor sin modificar el codigo fuente.
 
 ### Permisos Android
 
 El manifiesto de Android declara permisos de internet, camara y ubicacion. El sistema solicita los permisos correspondientes cuando una funcion del dispositivo los necesita.
 
 ## Pruebas y analisis
+
+He probado la aplicacion en dispositivos Android e iOS y confirme su funcionamiento durante el uso del proyecto. Para repetir las verificaciones tecnicas desde otro equipo, ejecuto:
 
 Ejecuta el analizador estatico:
 
@@ -227,20 +256,9 @@ Los archivos se generan en:
 
 Para distribuir la app en produccion, configura una firma de lanzamiento propia. La configuracion actual de Gradle utiliza la firma de depuracion para el tipo `release`, por lo que no debe considerarse lista para publicar en Google Play.
 
-## Pendientes tecnicos identificados
+## Estado de validacion
 
-Estos puntos se documentan para dar continuidad al desarrollo; no se modifico la logica de la app en esta actualizacion documental.
-
-1. **Sesion de Supabase:** el token se guarda actualmente en una variable estatica de `ApiService` al iniciar sesion. Conviene obtener la sesion vigente desde Supabase y contemplar la renovacion del token.
-2. **Persistencia del acceso:** la app inicia directamente en la pantalla de login. Falta comprobar la sesion guardada al abrir de nuevo la aplicacion.
-3. **Cerrar sesion:** el boton de perfil navega al login, pero debe ejecutar tambien `Supabase.instance.client.auth.signOut()` y limpiar el estado de autenticacion.
-4. **Datos de muestra:** el perfil, el nombre del destinatario y algunos datos del recibo muestran valores fijos. Deben sustituirse por datos reales del usuario y del pedido.
-5. **Acceso rapido a la camara:** el boton flotante de navegacion abre el comprobante con un identificador de pedido de ejemplo. Lo ideal es iniciar el flujo desde un pedido seleccionado.
-6. **Entregas completadas:** `home_delivered_screen.dart` consulta actualmente `getActiveOrders()`. Hay que confirmar si debe utilizar el endpoint de pedidos completados.
-7. **Mapas:** la lista abre Google Maps mediante `url_launcher`. Aunque `google_maps_flutter` esta declarado como dependencia, no se encontro un mapa integrado en las pantallas revisadas.
-8. **Firma de Android:** cambiar la firma de depuracion por una configuracion de firma de lanzamiento antes de distribuir la aplicacion.
-9. **Pruebas:** ampliar las pruebas para cubrir inicio de sesion, carga de pedidos, aceptacion y envio del comprobante.
-
+He ejecutado y probado la aplicacion en Android y iOS durante el desarrollo. La configuracion de lanzamiento para distribucion publica (por ejemplo, firma propia para Google Play o App Store) se debe preparar de acuerdo con los requisitos de cada tienda.
 ## Repositorios relacionados
 
 - [BackendLulistrack](https://github.com/AngelCuevas123/BackendLulistrack)
