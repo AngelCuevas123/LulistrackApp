@@ -4,7 +4,6 @@
 .pub/
 .pub-cache/
 .flutter-plugins
-.flutter-plugins-dependencies
 build/
 coverage/
 **/doc/api/
