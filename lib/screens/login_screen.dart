@@ -33,7 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // INICIAR SESION CON SUPABASE
+  // Aqui valido el correo y la contrasena que el administrador registro previamente desde el Dashboard.
   Future<void> _entrar() async {
     final email = _userController.text.trim();
     final password = _passwordController.text;
@@ -52,14 +52,14 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      // Iniciar sesion en Supabase
+      // En este paso verifico las credenciales del repartidor con Supabase Auth.
       final authResponse =
           await Supabase.instance.client.auth.signInWithPassword(
         email: email,
         password: password,
       );
 
-      // Obtener la sesion
+      // Recupero la sesion para usar su token en las peticiones al backend.
       final session = authResponse.session;
 
       if (session == null) {
@@ -493,14 +493,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(
-                                  'El registro estará disponible próximamente.',
+                                  'Solicita tu acceso al administrador desde el Dashboard de Lulistrack.',
                                 ),
                               ),
                             );
                           },
 
                           child: const Text(
-                            'Regístrate',
+                            'Solicitar acceso',
                             style: TextStyle(
                               color: accentPink,
                               fontSize: 13,
