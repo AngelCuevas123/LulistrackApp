@@ -12,7 +12,7 @@ La aplicacion forma parte del ecosistema Lulistrack:
 
 En Lulistrack no existe un registro publico desde la aplicacion movil. El acceso de cada repartidor se habilita desde el Dashboard por una cuenta con permisos de administrador.
 
-1. El administrador inicia sesion en el [Dashboard de Lulistrack](https://lulistrack-dashboard.vercel.app).
+1. El administrador inicia sesion en el [Dashboard de Lulistrack](https://lulistrack-dashboard.vercel.app). credenciales de prueba: xpnewsgaming@gmail.com password": 170678
 2. Entra a la seccion **Repartidores** y selecciona **Nuevo repartidor**.
 3. Captura el nombre, correo electronico, contraseña inicial y vehiculo.
 4. Al confirmar, el backend verifica que la solicitud venga de un administrador autorizado. Despues crea la cuenta en **Supabase Auth**, confirma el correo y registra el perfil del repartidor en PostgreSQL.
