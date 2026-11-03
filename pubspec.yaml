@@ -1,0 +1,38 @@
+
+name: lulistrack_app
+description: "A new Flutter project for Lulistrack."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.13.7 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.0
+  intl: ^0.19.0
+  cupertino_icons: ^1.0.8
+  url_launcher: ^6.2.5
+  image_picker: ^1.0.7
+  google_maps_flutter: ^2.5.3
+  supabase_flutter: ^2.18.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/icon/lulistrack_icon.png
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/lulistrack_icon.png"
+  adaptive_icon_background: "#213A81"
+  adaptive_icon_foreground: "assets/icon/lulistrack_icon.png"
