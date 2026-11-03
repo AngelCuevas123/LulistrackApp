@@ -187,9 +187,9 @@ Ejecuta la aplicacion:
 flutter run
 ```
 
-## Configuracion con .env
+## Configuracion local
 
-La app lee su configuracion desde un archivo `.env` ubicado en la raiz del proyecto. Este archivo se carga al iniciar Flutter y contiene las direcciones de los servicios y la clave publica de Supabase.
+La aplicacion carga al iniciar las variables de conexion de Supabase y del backend desde el archivo local `.env`.
 
 1. Copia el archivo de ejemplo:
    ```bash
@@ -208,9 +208,9 @@ La app lee su configuracion desde un archivo `.env` ubicado en la raiz del proye
    flutter run
    ```
 
-El archivo `.env.example` se incluye en GitHub como guia, pero el archivo `.env` real esta excluido por `.gitignore`. Si clonas el proyecto en otro equipo, debes crear tu propio `.env` antes de ejecutar o compilar la app.
+Cada entorno utiliza su propio archivo `.env`, creado a partir de `.env.example`.
 
-**Importante:** los valores de Supabase que utiliza el cliente movil son la URL y la clave publica anon/publishable. Aunque el archivo `.env` no se sube al repositorio, Flutter incorpora los assets al paquete de la aplicacion; por eso estos valores no deben considerarse secretos. Nunca coloques en este archivo una clave `service_role`, contraseñas de base de datos, tokens privados ni credenciales administrativas. La seguridad depende tambien de las politicas RLS y de la validacion de permisos en el backend.
+La app movil utiliza la clave publica de Supabase. La autenticacion se gestiona con Supabase Auth y las operaciones protegidas se validan en el backend.
 
 ### Backend
 
