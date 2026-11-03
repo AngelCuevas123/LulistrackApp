@@ -1,17 +1,18 @@
 
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../models/order_model.dart';
 import '../models/user_model.dart';
 
 class ApiService {
-  static const String baseUrl =
-      'https://backendlulistrack.onrender.com';
+  // Tomo la direccion del backend desde .env para poder cambiar de entorno sin editar el codigo.
+  static String get baseUrl => dotenv.env['API_BASE_URL']!;
 
-  // Token de autenticacion
+  // Guardo el token de la sesion para identificar mis solicitudes ante el backend.
   static String? authToken;
 
-  // 1. Obtener los pedidos asignados al repartidor
+  // Aqui consulto los pedidos que tiene asignados el repartidor.
   static Future<List<OrderModel>> getActiveOrders() async {
     final response = await http.get(
       Uri.parse('$baseUrl/orders/my'),
@@ -38,7 +39,7 @@ class ApiService {
     );
   }
 
-  // 2. Obtener pedidos disponibles para tomar
+  // Aqui recupero los pedidos que todavia puede aceptar el repartidor.
   static Future<List<OrderModel>> getAvailableOrders() async {
     final response = await http.get(
       Uri.parse('$baseUrl/orders/available'),
@@ -62,7 +63,7 @@ class ApiService {
     );
   }
 
-  // 3. Tomar un pedido como repartidor
+  // Aqui envio la solicitud para que el repartidor tome un pedido disponible.
   static Future<OrderModel> claimOrder(String orderId) async {
     final cleanId = orderId.replaceAll('#', '').trim();
 
@@ -92,7 +93,7 @@ class ApiService {
     );
   }
 
-  // 4. Enviar evidencia de entrega: fotografia y firma
+  // Aqui envio la fotografia y la firma para dejar registrado el comprobante de entrega.
   static Future<bool> submitProofOfDelivery({
     required String orderId,
     required String photoBase64,
@@ -126,7 +127,7 @@ class ApiService {
     }
   }
 
-  // 5. Obtener los datos del perfil del conductor
+  // Aqui consulto la informacion del perfil del repartidor.
   static Future<UserModel?> getDriverProfile(
       String driverId) async {
     try {
