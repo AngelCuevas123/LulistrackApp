@@ -117,6 +117,7 @@ lulistrack_app/
 │       └── order_card.dart          # Tarjeta de pedido
 ├── test/
 │   └── widget_test.dart             # Prueba basica de interfaz
+├── .env.example                    # Plantilla de configuracion (sin claves reales)
 ├── .gitignore
 ├── analysis_options.yaml
 ├── pubspec.yaml
