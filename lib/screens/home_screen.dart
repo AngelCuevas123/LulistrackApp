@@ -184,8 +184,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               radius: 24,
                               backgroundColor:
                                   Colors.white.withOpacity(0.2),
-                              child: const Text(
-                                'JC',
+                              child: Text(
+                                ApiService.currentDriver?.initials ?? 'R',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -194,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                             const SizedBox(width: 12),
-                            const Column(
+                            Column(
                               crossAxisAlignment:
                                   CrossAxisAlignment.start,
                               children: [
