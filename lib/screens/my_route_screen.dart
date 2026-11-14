@@ -101,8 +101,8 @@ class _MyRouteScreenState extends State<MyRouteScreen> {
                           ],
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Juan Cuevas · Conductor Autorizado',
+                        Text(
+                          '${ApiService.currentDriver?.name ?? 'Repartidor'} · Conductor Autorizado',
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.white70,
