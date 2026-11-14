@@ -1,5 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../models/order_model.dart';
+import '../services/api_service.dart';
 import 'home_screen.dart';
 import 'my_route_screen.dart';
 import 'history_screen.dart';
@@ -25,6 +27,106 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   static const Color primaryNavy = Color(0xFF1E3A8A);
   static const Color accentPink = Color(0xFFC23B75);
+
+  Future<void> _openEvidenceForOrder() async {
+    try {
+      final orders = await ApiService.getActiveOrders();
+
+      if (!mounted) return;
+
+      if (orders.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No tienes pedidos activos para registrar evidencia.'),
+          ),
+        );
+        return;
+      }
+
+      final selectedOrder = await showModalBottomSheet<OrderModel>(
+        context: context,
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (sheetContext) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Selecciona el pedido',
+                  style: TextStyle(
+                    color: Color(0xFF1E3A8A),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(sheetContext).size.height * 0.55,
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: orders.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final order = orders[index];
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const CircleAvatar(
+                          backgroundColor: Color(0xFFEEF2FF),
+                          child: Icon(
+                            Icons.inventory_2_outlined,
+                            color: Color(0xFF1E3A8A),
+                          ),
+                        ),
+                        title: Text(
+                          order.clientName.isEmpty
+                              ? 'Cliente'
+                              : order.clientName,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          order.trackingNumber.isEmpty
+                              ? order.id
+                              : order.trackingNumber,
+                        ),
+                        onTap: () => Navigator.pop(sheetContext, order),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      if (selectedOrder == null || !mounted) return;
+
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              PhotoEvidenceScreen(orderId: selectedOrder.id),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'No se pudieron consultar tus pedidos: ${error.toString()}',
+          ),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,14 +186,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
               // Botón flotante independiente de la cámara
               GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PhotoEvidenceScreen(orderId: 'LT-543210'),
-                    ),
-                  );
-                },
+                onTap: _openEvidenceForOrder,
                 child: Container(
                   height: 72,
                   width: 72,
