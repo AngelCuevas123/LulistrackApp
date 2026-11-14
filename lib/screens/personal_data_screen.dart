@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/api_service.dart';
 
 class PersonalDataScreen extends StatelessWidget {
   const PersonalDataScreen({super.key});
@@ -10,6 +12,12 @@ class PersonalDataScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final driver = ApiService.currentDriver;
+    final authUser = Supabase.instance.client.auth.currentUser;
+    final phone = authUser?.phone?.isNotEmpty == true
+        ? authUser!.phone!
+        : (authUser?.userMetadata?['phone']?.toString() ?? 'No registrado');
+
     return Scaffold(
       backgroundColor: bgLight,
       appBar: AppBar(
@@ -26,18 +34,22 @@ class PersonalDataScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            const Center(
+            Center(
               child: CircleAvatar(
                 radius: 40,
                 backgroundColor: primaryNavy,
-                child: Text('JC', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                child: Text(
+                  driver?.initials ?? 'R',
+                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
             const SizedBox(height: 24),
-            _buildField('Nombre Completo', 'Juan Ángel Cuevas Castañeda'),
-            _buildField('Correo Electrónico', 'juan.cuevas@lulistrack.com'),
-            _buildField('Teléfono', '+52 33 1234 5678'),
-            _buildField('Rol de Conductor', 'Autorizado (Lulistrack)'),
+            _buildField('Nombre Completo', driver?.name ?? 'No disponible'),
+            _buildField('Correo Electrónico', authUser?.email ?? 'No disponible'),
+            _buildField('Teléfono', phone),
+            _buildField('Vehículo', driver?.vehicle ?? 'No registrado'),
+            _buildField('ID de repartidor', driver?.driverId ?? 'No disponible'),
           ],
         ),
       ),
