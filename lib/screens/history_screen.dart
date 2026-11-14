@@ -14,9 +14,7 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  // URL del historial exclusivo del repartidor autenticado
-  static const String apiUrl =
-      'https://backendlulistrack.onrender.com/orders/my/completed';
+  // El historial usa la misma URL configurable que el resto de los servicios.
 
   // Colores de Lulistrack
   static const Color primaryNavy = Color(0xFF1E3A8A);
@@ -58,7 +56,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       }
 
       final response = await http.get(
-        Uri.parse(apiUrl),
+        Uri.parse('${ApiService.baseUrl}/orders/my/completed'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
