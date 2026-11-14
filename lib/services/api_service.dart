@@ -12,6 +12,9 @@ class ApiService {
   // Guardo el token de la sesion para identificar mis solicitudes ante el backend.
   static String? authToken;
 
+  // Perfil del repartidor autenticado, compartido entre las pantallas.
+  static UserModel? currentDriver;
+
   // Aqui consulto los pedidos que tiene asignados el repartidor.
   static Future<List<OrderModel>> getActiveOrders() async {
     final response = await http.get(
@@ -125,6 +128,57 @@ class ApiService {
       print('Error al enviar evidencia: $e');
       return false;
     }
+  }
+
+  // Recupera el perfil asociado al usuario autenticado en Supabase.
+  // Este endpoint es el adecuado para la app móvil; /drivers/{id} es administrativo.
+  static Future<UserModel> getMyDriverProfile({
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh && currentDriver != null) {
+      return currentDriver!;
+    }
+
+    if (authToken == null || authToken!.isEmpty) {
+      throw Exception('No hay una sesión activa. Inicia sesión nuevamente.');
+    }
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/drivers/me'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $authToken',
+      },
+    ).timeout(const Duration(seconds: 30));
+
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+      if (decoded is! Map<String, dynamic>) {
+        throw Exception('El servidor devolvió un perfil inválido.');
+      }
+
+      final profile = UserModel.fromJson(decoded);
+      if (profile.driverId.isEmpty || profile.name.trim().isEmpty) {
+        throw Exception('El perfil del repartidor está incompleto.');
+      }
+
+      currentDriver = profile;
+      return profile;
+    }
+
+    if (response.statusCode == 404) {
+      throw Exception(
+        'Esta cuenta no tiene un perfil de repartidor asociado. Contacta al administrador.',
+      );
+    }
+
+    if (response.statusCode == 401) {
+      throw Exception('Tu sesión ha expirado. Inicia sesión nuevamente.');
+    }
+
+    throw Exception(
+      'No se pudo cargar el perfil del repartidor (${response.statusCode}).',
+    );
   }
 
   // Aqui consulto la informacion del perfil del repartidor.
