@@ -66,8 +66,10 @@ class _LoginScreenState extends State<LoginScreen> {
         throw Exception('No se pudo obtener la sesion.');
       }
 
-      // GUARDAR TOKEN PARA LAS PETICIONES AL BACKEND
+      // Guardar el token y cargar el perfil real asociado a esta cuenta.
       ApiService.authToken = session.accessToken;
+      ApiService.currentDriver = null;
+      await ApiService.getMyDriverProfile(forceRefresh: true);
 
       print('Inicio de sesion correcto.');
       print('Token disponible: ${ApiService.authToken != null}');
