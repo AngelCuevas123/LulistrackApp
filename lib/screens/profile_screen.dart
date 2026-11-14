@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/api_service.dart';
 import 'login_screen.dart';
 import 'personal_data_screen.dart';
 import 'notifications_settings_screen.dart';
@@ -32,13 +34,13 @@ class ProfileScreen extends StatelessWidget {
                   bottomRight: Radius.circular(32),
                 ),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   CircleAvatar(
                     radius: 32,
                     backgroundColor: Colors.white24,
                     child: Text(
-                      'JC',
+                      ApiService.currentDriver?.initials ?? 'R',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -51,7 +53,7 @@ class ProfileScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Juan Cuevas',
+                        ApiService.currentDriver?.name ?? 'Repartidor',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -125,12 +127,18 @@ class ProfileScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 50,
                     child: OutlinedButton(
-                      onPressed: () {
-                        Navigator.pushReplacement(
+                      onPressed: () async {
+                        await Supabase.instance.client.auth.signOut();
+                        ApiService.authToken = null;
+                        ApiService.currentDriver = null;
+
+                        if (!context.mounted) return;
+                        Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
                             builder: (context) => const LoginScreen(),
                           ),
+                          (route) => false,
                         );
                       },
                       style: OutlinedButton.styleFrom(
