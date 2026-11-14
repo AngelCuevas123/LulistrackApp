@@ -20,12 +20,13 @@ class OrderDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String orderId = orderData['id'] ?? 'LT-543210';
-    final String clientName = orderData['client_name'] ?? 'Cliente';
-    final String trackingNumber = orderData['tracking_number'] ?? orderId;
-    final String address = orderData['address'] ?? 'Sin dirección';
-    final String colony = orderData['colony'] ?? '';
-    final String status = orderData['status'] ?? 'en_transito';
+    final String orderId = orderData['id']?.toString() ?? '';
+    final String clientName = orderData['client_name']?.toString() ?? 'Cliente';
+    final String trackingNumber =
+        orderData['tracking_number']?.toString() ?? orderId;
+    final String address = orderData['address']?.toString() ?? 'Sin dirección';
+    final String colony = orderData['colony']?.toString() ?? '';
+    final String status = orderData['status']?.toString() ?? 'en_transito';
 
     return Scaffold(
       backgroundColor: bgLight,
@@ -216,14 +217,17 @@ class OrderDetailScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PhotoEvidenceScreen(orderId: orderId),
-                      ),
-                    );
-                  },
+                  onPressed: orderId.isEmpty
+                      ? null
+                      : () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  PhotoEvidenceScreen(orderId: orderId),
+                            ),
+                          );
+                        },
                   icon: const Icon(Icons.assignment_outlined, color: Colors.white, size: 20),
                   label: const Text(
                     'Iniciar Comprobante de entrega',
