@@ -208,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 SizedBox(height: 2),
                                 Text(
-                                  'Angel Cuevas',
+                                  ApiService.currentDriver?.name ?? 'Repartidor',
                                   style: TextStyle(
                                     color: Colors.white70,
                                     fontSize: 13,
