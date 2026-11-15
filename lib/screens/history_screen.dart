@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/api_service.dart';
+import '../services/offline_database.dart';
 import 'order_detail_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -44,66 +45,54 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  // Consultar entregas completadas del repartidor
+  // Consulta el historial y conserva la última respuesta válida en SQLite.
   Future<List<Map<String, dynamic>>> fetchHistory() async {
+    final token = ApiService.authToken;
+    if (token == null || token.isEmpty) {
+      throw Exception('No hay una sesión activa. Inicia sesión nuevamente.');
+    }
+    final cached = await OfflineDatabase.instance.getCachedCompletedOrders();
+
     try {
-      final token = ApiService.authToken;
-
-      if (token == null || token.isEmpty) {
-        throw Exception(
-          'No hay una sesión activa. Inicia sesión nuevamente.',
-        );
-      }
-
       final response = await http.get(
         Uri.parse('${ApiService.baseUrl}/orders/my/completed'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      ).timeout(const Duration(seconds: 45));
-
-      print('Historial: ${response.statusCode}');
-      print('Respuesta: ${response.body}');
+      ).timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
-
+        List<Map<String, dynamic>> orders;
         if (decoded is List) {
-          return decoded
-              .whereType<Map>()
-              .map((item) => Map<String, dynamic>.from(item))
-              .toList();
+          orders = decoded.whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item)).toList();
+        } else if (decoded is Map && decoded['data'] is List) {
+          orders = (decoded['data'] as List).whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item)).toList();
+        } else {
+          orders = [];
         }
-
-        if (decoded is Map && decoded['data'] is List) {
-          return (decoded['data'] as List)
-              .whereType<Map>()
-              .map((item) => Map<String, dynamic>.from(item))
-              .toList();
-        }
-
-        return [];
+        await OfflineDatabase.instance.cacheCompletedOrders(orders);
+        return orders;
       }
-
       if (response.statusCode == 401) {
-        throw Exception(
-          'Tu sesión ha expirado. Inicia sesión nuevamente.',
-        );
+        throw Exception('Tu sesión ha expirado. Inicia sesión nuevamente.');
       }
-
       if (response.statusCode == 403) {
-        throw Exception(
-          'Tu cuenta no tiene un perfil de repartidor autorizado.',
-        );
+        throw Exception('Tu cuenta no tiene un perfil de repartidor autorizado.');
       }
-
-      throw Exception(
-        'Error ${response.statusCode}: ${response.body}',
-      );
-    } catch (e) {
-      print('Error al consultar historial: $e');
-      rethrow;
+      if (response.statusCode >= 500) return cached;
+      throw Exception('Error ${response.statusCode}: ${response.body}');
+    } catch (error) {
+      final message = error.toString();
+      if (message.contains('sesión ha expirado') ||
+          message.contains('perfil de repartidor autorizado') ||
+          message.contains('Error 4')) {
+        rethrow;
+      }
+      return cached;
     }
   }
 
