@@ -18,58 +18,62 @@ class ApiService {
 
   // Aqui consulto los pedidos que tiene asignados el repartidor.
   static Future<List<OrderModel>> getActiveOrders() async {
+    late http.Response response;
     try {
-      final response = await http.get(
+      response = await http.get(
         Uri.parse('$baseUrl/orders/my'),
         headers: {
           'Content-Type': 'application/json',
           if (authToken != null) 'Authorization': 'Bearer $authToken',
         },
       ).timeout(const Duration(seconds: 45));
-
-      if (response.statusCode == 200) {
-        final List data = json.decode(response.body);
-        final orders = data.map((model) => OrderModel.fromJson(model)).toList();
-        await OfflineDatabase.instance.cacheOrders(orders, group: 'active');
-        return orders;
-      }
-      if (response.statusCode == 401 || response.statusCode == 403) {
-        throw Exception('No tienes autorización para consultar tus pedidos (' + response.statusCode.toString() + ').');
-      }
-      throw Exception('Error al cargar mis pedidos: ' + response.statusCode.toString());
     } catch (_) {
       final cached = await OfflineDatabase.instance.getCachedOrders(group: 'active');
       if (cached.isNotEmpty) return cached;
       rethrow;
     }
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
+      final orders = data.map((model) => OrderModel.fromJson(model)).toList();
+      await OfflineDatabase.instance.cacheOrders(orders, group: 'active');
+      return orders;
+    }
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw Exception('No tienes autorización para consultar tus pedidos (' + response.statusCode.toString() + ').');
+    }
+    final cached = await OfflineDatabase.instance.getCachedOrders(group: 'active');
+    if (cached.isNotEmpty && response.statusCode >= 500) return cached;
+    throw Exception('Error al cargar mis pedidos: ' + response.statusCode.toString());
   }
 
   // Consulta pedidos disponibles y conserva la última respuesta para modo sin conexión.
   static Future<List<OrderModel>> getAvailableOrders() async {
+    late http.Response response;
     try {
-      final response = await http.get(
+      response = await http.get(
         Uri.parse('$baseUrl/orders/available'),
         headers: {
           'Content-Type': 'application/json',
           if (authToken != null) 'Authorization': 'Bearer $authToken',
         },
       ).timeout(const Duration(seconds: 45));
-
-      if (response.statusCode == 200) {
-        final List data = json.decode(response.body);
-        final orders = data.map((order) => OrderModel.fromJson(order)).toList();
-        await OfflineDatabase.instance.cacheOrders(orders, group: 'available');
-        return orders;
-      }
-      if (response.statusCode == 401 || response.statusCode == 403) {
-        throw Exception('No tienes autorización para consultar pedidos disponibles (' + response.statusCode.toString() + ').');
-      }
-      throw Exception('Error al obtener pedidos disponibles: ' + response.statusCode.toString());
     } catch (_) {
       final cached = await OfflineDatabase.instance.getCachedOrders(group: 'available');
       if (cached.isNotEmpty) return cached;
       rethrow;
     }
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
+      final orders = data.map((order) => OrderModel.fromJson(order)).toList();
+      await OfflineDatabase.instance.cacheOrders(orders, group: 'available');
+      return orders;
+    }
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw Exception('No tienes autorización para consultar pedidos disponibles (' + response.statusCode.toString() + ').');
+    }
+    final cached = await OfflineDatabase.instance.getCachedOrders(group: 'available');
+    if (cached.isNotEmpty && response.statusCode >= 500) return cached;
+    throw Exception('Error al obtener pedidos disponibles: ' + response.statusCode.toString());
   }
 
   // Aqui envio la solicitud para que el repartidor tome un pedido disponible.
