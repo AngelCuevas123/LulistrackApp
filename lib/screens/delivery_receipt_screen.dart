@@ -101,7 +101,7 @@ class DeliveryReceiptScreen extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       syncError != null
-                          ? 'El servidor no aceptó la evidencia. Revisa los datos o contacta al administrador; no es un problema de conexión.'
+                          ? syncError
                           : pendingSync
                               ? 'La evidencia quedó guardada. Se reintentará cuando el servidor vuelva a estar disponible.'
                               : 'Otro pedido entregado satisfactoriamente',
