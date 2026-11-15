@@ -6,7 +6,7 @@
     <key>NSCameraUsageDescription</key>
     <string>Lulistrack necesita acceso a la cámara para capturar la evidencia fotográfica de las entregas.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>Lulistrack requiere tu ubicación para trazar y optimizar las rutas de entrega.</string>
+    <string>Lulistrack comparte tu ubicación con el cliente mientras tengas un pedido en tránsito y la app esté abierta, para mostrar el seguimiento de la entrega.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Lulistrack necesita acceso a tus fotos para adjuntar evidencias de los pedidos.</string>
 
