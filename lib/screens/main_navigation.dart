@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:ui';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import '../models/order_model.dart';
 import '../services/api_service.dart';
+import '../services/offline_sync_service.dart';
 import 'home_screen.dart';
 import 'my_route_screen.dart';
 import 'history_screen.dart';
@@ -17,6 +20,30 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _connectivitySubscription =
+        Connectivity().onConnectivityChanged.listen((results) {
+      final hasConnection =
+          results.any((result) => result != ConnectivityResult.none);
+      if (hasConnection) {
+        unawaited(OfflineSyncService.instance.syncPendingDeliveries());
+      }
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(OfflineSyncService.instance.syncPendingDeliveries());
+    });
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription?.cancel();
+    super.dispose();
+  }
 
   final List<Widget> _screens = [
     const HomeScreen(),
