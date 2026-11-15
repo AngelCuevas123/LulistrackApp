@@ -30,12 +30,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       final hasConnection =
           results.any((result) => result != ConnectivityResult.none);
       if (hasConnection) {
-        unawaited(OfflineSyncService.instance.syncPendingDeliveries());
+        unawaited(OfflineSyncService.instance.syncPendingDeliveries().then((_) {}));
       }
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(OfflineSyncService.instance.syncPendingDeliveries());
+      unawaited(OfflineSyncService.instance.syncPendingDeliveries().then((_) {}));
     });
   }
 
