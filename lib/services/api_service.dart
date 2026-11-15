@@ -85,6 +85,38 @@ class ApiService {
         response.statusCode == 204;
   }
 
+
+  // Envía la ubicación actual del repartidor autenticado al backend.
+  static Future<void> updateMyLocation({
+    required double latitude,
+    required double longitude,
+    double? accuracy,
+  }) async {
+    if (authToken == null || authToken!.isEmpty) {
+      throw Exception('No hay una sesión activa para compartir la ubicación.');
+    }
+
+    final response = await http.put(
+      Uri.parse('$baseUrl/drivers/me/location'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $authToken',
+      },
+      body: json.encode({
+        'latitude': latitude,
+        'longitude': longitude,
+        'accuracy': accuracy,
+      }),
+    ).timeout(const Duration(seconds: 20));
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'No se pudo actualizar la ubicación: '
+        '${response.statusCode} - ${response.body}',
+      );
+    }
+  }
+
   // Consulta los pedidos asignados al repartidor.
   static Future<List<OrderModel>> getActiveOrders() async {
     late http.Response response;
