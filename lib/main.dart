@@ -1,37 +1,62 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
+import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 
+// Manejo de notificaciones cuando la aplicación está en segundo plano.
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(
+    RemoteMessage message,
+    ) async {
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  debugPrint('Mensaje recibido: ${message.messageId}');
+}
+
 Future<void> main() async {
-  // Primero preparo Flutter para poder cargar la configuracion antes de iniciar la app.
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Leo las direcciones y claves publicas desde .env para no dejarlas escritas en el codigo.
+  // Inicializar Firebase.
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Registrar el manejador de mensajes en segundo plano.
+  FirebaseMessaging.onBackgroundMessage(
+    firebaseMessagingBackgroundHandler,
+  );
+
+  // Cargar variables de entorno.
   await dotenv.load(fileName: '.env');
 
   final supabaseUrl = dotenv.env['SUPABASE_URL'];
   final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
   final apiBaseUrl = dotenv.env['API_BASE_URL'];
 
-  // Compruebo que la configuracion necesaria exista antes de conectar los servicios.
   if (supabaseUrl == null ||
       supabaseUrl.isEmpty ||
       supabaseAnonKey == null ||
       supabaseAnonKey.isEmpty ||
       apiBaseUrl == null ||
       apiBaseUrl.isEmpty) {
-    throw StateError('Faltan variables de configuracion en el archivo .env');
+    throw StateError(
+      'Faltan variables de configuracion en el archivo .env',
+    );
   }
 
-  // Inicializo Supabase con la clave publica que utiliza la aplicacion movil.
+  // Inicializar Supabase.
   await Supabase.initialize(
     url: supabaseUrl,
     anonKey: supabaseAnonKey,
   );
 
-  // Cuando los servicios estan listos, muestro la aplicacion.
   runApp(const LulistrackApp());
 }
 

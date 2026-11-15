@@ -6,16 +6,77 @@ import '../models/order_model.dart';
 import '../models/user_model.dart';
 
 class ApiService {
-  // Tomo la direccion del backend desde .env para poder cambiar de entorno sin editar el codigo.
+  // Dirección del backend configurada en .env.
   static String get baseUrl => dotenv.env['API_BASE_URL']!;
 
-  // Guardo el token de la sesion para identificar mis solicitudes ante el backend.
+  // Token de autenticación de Supabase.
   static String? authToken;
 
-  // Perfil del repartidor autenticado, compartido entre las pantallas.
+  // Perfil del repartidor autenticado.
   static UserModel? currentDriver;
 
-  // Aqui consulto los pedidos que tiene asignados el repartidor.
+  // Registra el Firebase Installation ID del dispositivo.
+  static Future<bool> registerFirebaseInstallationId({
+    required String firebaseInstallationId,
+    required String platform,
+  }) async {
+    if (authToken == null || authToken!.isEmpty) {
+      throw Exception(
+        'No hay una sesión activa para registrar el dispositivo.',
+      );
+    }
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/drivers/me/fcm-token'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $authToken',
+      },
+      body: json.encode({
+        'firebase_installation_id': firebaseInstallationId,
+        'platform': platform,
+      }),
+    ).timeout(const Duration(seconds: 30));
+
+    print('Registro FID: ${response.statusCode}');
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return true;
+    }
+
+    throw Exception(
+      'No se pudo registrar el dispositivo: '
+          '${response.statusCode} - ${response.body}',
+    );
+  }
+
+  // Desactiva el Firebase Installation ID al cerrar sesión.
+  static Future<bool> unregisterFirebaseInstallationId(
+      String firebaseInstallationId,
+      ) async {
+    if (authToken == null || authToken!.isEmpty) {
+      return false;
+    }
+
+    final uri = Uri.parse('$baseUrl/drivers/me/fcm-token')
+        .replace(queryParameters: {
+      'firebase_installation_id': firebaseInstallationId,
+    });
+
+    final response = await http.delete(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $authToken',
+      },
+    ).timeout(const Duration(seconds: 30));
+
+    print('Desregistro FID: ${response.statusCode}');
+
+    return response.statusCode == 200 ||
+        response.statusCode == 204;
+  }
+
+  // Consulta los pedidos asignados al repartidor.
   static Future<List<OrderModel>> getActiveOrders() async {
     final response = await http.get(
       Uri.parse('$baseUrl/orders/my'),
@@ -38,11 +99,12 @@ class ApiService {
     }
 
     throw Exception(
-      'Error al cargar mis pedidos: ${response.statusCode} - ${response.body}',
+      'Error al cargar mis pedidos: '
+          '${response.statusCode} - ${response.body}',
     );
   }
 
-  // Aqui recupero los pedidos que todavia puede aceptar el repartidor.
+  // Consulta los pedidos disponibles para aceptar.
   static Future<List<OrderModel>> getAvailableOrders() async {
     final response = await http.get(
       Uri.parse('$baseUrl/orders/available'),
@@ -62,11 +124,12 @@ class ApiService {
     }
 
     throw Exception(
-      'Error al obtener pedidos disponibles: ${response.statusCode} - ${response.body}',
+      'Error al obtener pedidos disponibles: '
+          '${response.statusCode} - ${response.body}',
     );
   }
 
-  // Aqui envio la solicitud para que el repartidor tome un pedido disponible.
+  // Permite al repartidor tomar un pedido disponible.
   static Future<OrderModel> claimOrder(String orderId) async {
     final cleanId = orderId.replaceAll('#', '').trim();
 
@@ -92,11 +155,12 @@ class ApiService {
     }
 
     throw Exception(
-      'No se pudo tomar el pedido: ${response.statusCode} - ${response.body}',
+      'No se pudo tomar el pedido: '
+          '${response.statusCode} - ${response.body}',
     );
   }
 
-  // Aqui envio la fotografia y la firma para dejar registrado el comprobante de entrega.
+  // Envía fotografía y firma como comprobante de entrega.
   static Future<bool> submitProofOfDelivery({
     required String orderId,
     required String photoBase64,
@@ -130,8 +194,7 @@ class ApiService {
     }
   }
 
-  // Recupera el perfil asociado al usuario autenticado en Supabase.
-  // Este endpoint es el adecuado para la app móvil; /drivers/{id} es administrativo.
+  // Recupera el perfil del repartidor autenticado.
   static Future<UserModel> getMyDriverProfile({
     bool forceRefresh = false,
   }) async {
@@ -140,7 +203,9 @@ class ApiService {
     }
 
     if (authToken == null || authToken!.isEmpty) {
-      throw Exception('No hay una sesión activa. Inicia sesión nuevamente.');
+      throw Exception(
+        'No hay una sesión activa. Inicia sesión nuevamente.',
+      );
     }
 
     final response = await http.get(
@@ -153,13 +218,19 @@ class ApiService {
 
     if (response.statusCode == 200) {
       final decoded = json.decode(response.body);
+
       if (decoded is! Map<String, dynamic>) {
-        throw Exception('El servidor devolvió un perfil inválido.');
+        throw Exception(
+          'El servidor devolvió un perfil inválido.',
+        );
       }
 
       final profile = UserModel.fromJson(decoded);
+
       if (profile.driverId.isEmpty || profile.name.trim().isEmpty) {
-        throw Exception('El perfil del repartidor está incompleto.');
+        throw Exception(
+          'El perfil del repartidor está incompleto.',
+        );
       }
 
       currentDriver = profile;
@@ -168,22 +239,27 @@ class ApiService {
 
     if (response.statusCode == 404) {
       throw Exception(
-        'Esta cuenta no tiene un perfil de repartidor asociado. Contacta al administrador.',
+        'Esta cuenta no tiene un perfil de repartidor asociado. '
+            'Contacta al administrador.',
       );
     }
 
     if (response.statusCode == 401) {
-      throw Exception('Tu sesión ha expirado. Inicia sesión nuevamente.');
+      throw Exception(
+        'Tu sesión ha expirado. Inicia sesión nuevamente.',
+      );
     }
 
     throw Exception(
-      'No se pudo cargar el perfil del repartidor (${response.statusCode}).',
+      'No se pudo cargar el perfil del repartidor '
+          '(${response.statusCode}).',
     );
   }
 
-  // Aqui consulto la informacion del perfil del repartidor.
+  // Consulta la información de un repartidor.
   static Future<UserModel?> getDriverProfile(
-      String driverId) async {
+      String driverId,
+      ) async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/drivers/$driverId'),
@@ -208,4 +284,3 @@ class ApiService {
     }
   }
 }
-

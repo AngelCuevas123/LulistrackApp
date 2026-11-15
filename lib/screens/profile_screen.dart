@@ -1,6 +1,10 @@
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
+
 import 'login_screen.dart';
 import 'personal_data_screen.dart';
 import 'notifications_settings_screen.dart';
@@ -41,27 +45,27 @@ class ProfileScreen extends StatelessWidget {
                     backgroundColor: Colors.white24,
                     child: Text(
                       ApiService.currentDriver?.initials ?? 'R',
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 22,
                       ),
                     ),
                   ),
-                  SizedBox(width: 16),
+                  const SizedBox(width: 16),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         ApiService.currentDriver?.name ?? 'Repartidor',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
-                      SizedBox(height: 4),
-                      Text(
+                      const SizedBox(height: 4),
+                      const Text(
                         'Conductor Autorizado · Lulistrack',
                         style: TextStyle(
                           fontSize: 12,
@@ -77,7 +81,10 @@ class ProfileScreen extends StatelessWidget {
             // Opciones de configuración y perfil
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 20,
+                ),
                 children: [
                   const Text(
                     'Configuración de cuenta',
@@ -97,6 +104,7 @@ class ProfileScreen extends StatelessWidget {
                     destination: const PersonalDataScreen(),
                   ),
                   const SizedBox(height: 10),
+
                   _buildProfileOption(
                     context,
                     icon: Icons.notifications_outlined,
@@ -105,6 +113,7 @@ class ProfileScreen extends StatelessWidget {
                     destination: const NotificationsSettingsScreen(),
                   ),
                   const SizedBox(height: 10),
+
                   _buildProfileOption(
                     context,
                     icon: Icons.security_rounded,
@@ -113,6 +122,7 @@ class ProfileScreen extends StatelessWidget {
                     destination: const SecurityPrivacyScreen(),
                   ),
                   const SizedBox(height: 10),
+
                   _buildProfileOption(
                     context,
                     icon: Icons.help_outline_rounded,
@@ -122,27 +132,36 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  // Botón de Cerrar Sesión -> Redirige al Login
+                  // Botón de Cerrar Sesión
                   SizedBox(
                     width: double.infinity,
                     height: 50,
                     child: OutlinedButton(
                       onPressed: () async {
+                        // Primero desactivar el FID en nuestro backend.
+                        await NotificationService
+                            .unregisterCurrentInstallation();
+
+                        // Después cerrar la sesión de Supabase.
                         await Supabase.instance.client.auth.signOut();
+
                         ApiService.authToken = null;
                         ApiService.currentDriver = null;
 
                         if (!context.mounted) return;
+
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
                             builder: (context) => const LoginScreen(),
                           ),
-                          (route) => false,
+                              (route) => false,
                         );
                       },
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFFEF4444)),
+                        side: const BorderSide(
+                          color: Color(0xFFEF4444),
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -168,12 +187,12 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildProfileOption(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Widget destination,
-  }) {
+      BuildContext context, {
+        required IconData icon,
+        required String title,
+        required String subtitle,
+        required Widget destination,
+      }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
       decoration: BoxDecoration(
@@ -235,7 +254,11 @@ class ProfileScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: textGray, size: 20),
+                const Icon(
+                  Icons.chevron_right,
+                  color: textGray,
+                  size: 20,
+                ),
               ],
             ),
           ),

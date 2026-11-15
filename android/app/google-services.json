@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "391738075386",
+    "project_id": "lulistrack-46b9e",
+    "storage_bucket": "lulistrack-46b9e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:391738075386:android:a59c2ad49ef957e0c04143",
+        "android_client_info": {
+          "package_name": "com.juanangelcuevas.lulistrack"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA10QIuLxci6T5t9Szuh4SC3sBcWHfDMRw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
