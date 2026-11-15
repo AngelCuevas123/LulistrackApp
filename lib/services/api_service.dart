@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../models/order_model.dart';
 import '../models/user_model.dart';
+import 'offline_database.dart';
 
 class ApiService {
   // Dirección del backend configurada en .env.
@@ -78,24 +79,50 @@ class ApiService {
 
   // Consulta los pedidos asignados al repartidor.
   static Future<List<OrderModel>> getActiveOrders() async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/orders/my'),
-      headers: {
-        'Content-Type': 'application/json',
-        if (authToken != null)
-          'Authorization': 'Bearer $authToken',
-      },
-    ).timeout(const Duration(seconds: 45));
+    late http.Response response;
 
-    print('Respuesta de pedidos: ${response.statusCode}');
-    print('Detalle: ${response.body}');
+    try {
+      response = await http.get(
+        Uri.parse('$baseUrl/orders/my'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+      ).timeout(const Duration(seconds: 45));
+    } catch (_) {
+      final cached = await OfflineDatabase.instance
+          .getCachedOrders(group: 'active');
+
+      if (cached.isNotEmpty) return cached;
+      rethrow;
+    }
 
     if (response.statusCode == 200) {
       final List data = json.decode(response.body);
-
-      return data
+      final orders = data
           .map((model) => OrderModel.fromJson(model))
           .toList();
+
+      await OfflineDatabase.instance.cacheOrders(
+        orders,
+        group: 'active',
+      );
+
+      return orders;
+    }
+
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw Exception(
+        'No tienes autorización para consultar tus pedidos '
+            '(${response.statusCode}).',
+      );
+    }
+
+    final cached = await OfflineDatabase.instance
+        .getCachedOrders(group: 'active');
+
+    if (cached.isNotEmpty && response.statusCode >= 500) {
+      return cached;
     }
 
     throw Exception(
@@ -104,23 +131,52 @@ class ApiService {
     );
   }
 
-  // Consulta los pedidos disponibles para aceptar.
+  // Consulta pedidos disponibles y conserva la última respuesta sin conexión.
   static Future<List<OrderModel>> getAvailableOrders() async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/orders/available'),
-      headers: {
-        'Content-Type': 'application/json',
-        if (authToken != null)
-          'Authorization': 'Bearer $authToken',
-      },
-    ).timeout(const Duration(seconds: 45));
+    late http.Response response;
+
+    try {
+      response = await http.get(
+        Uri.parse('$baseUrl/orders/available'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+      ).timeout(const Duration(seconds: 45));
+    } catch (_) {
+      final cached = await OfflineDatabase.instance
+          .getCachedOrders(group: 'available');
+
+      if (cached.isNotEmpty) return cached;
+      rethrow;
+    }
 
     if (response.statusCode == 200) {
       final List data = json.decode(response.body);
-
-      return data
+      final orders = data
           .map((order) => OrderModel.fromJson(order))
           .toList();
+
+      await OfflineDatabase.instance.cacheOrders(
+        orders,
+        group: 'available',
+      );
+
+      return orders;
+    }
+
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw Exception(
+        'No tienes autorización para consultar pedidos disponibles '
+            '(${response.statusCode}).',
+      );
+    }
+
+    final cached = await OfflineDatabase.instance
+        .getCachedOrders(group: 'available');
+
+    if (cached.isNotEmpty && response.statusCode >= 500) {
+      return cached;
     }
 
     throw Exception(

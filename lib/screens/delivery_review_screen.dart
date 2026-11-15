@@ -1,7 +1,9 @@
 
 import 'package:flutter/material.dart';
 
-import '../services/api_service.dart';
+import '../services/offline_database.dart';
+import '../services/offline_evidence_storage.dart';
+import '../services/offline_sync_service.dart';
 import 'delivery_receipt_screen.dart';
 
 class DeliveryReviewScreen extends StatefulWidget {
@@ -11,7 +13,7 @@ class DeliveryReviewScreen extends StatefulWidget {
 
   const DeliveryReviewScreen({
     super.key,
-    this.orderId = '#LT-543210',
+    required this.orderId,
     required this.photoBase64,
     required this.signatureBase64,
   });
@@ -33,59 +35,67 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
   static const Color statusYellow = Color(0xFFFEF08A);
   static const Color statusYellowText = Color(0xFF854D0E);
 
-  // Enviar la fotografia y la firma al backend
+  // Primero guardo la evidencia en el dispositivo; después intento sincronizarla.
   Future<void> _confirmAndSubmitDelivery() async {
     if (_isLoading) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      final success = await ApiService.submitProofOfDelivery(
+      final storage = OfflineEvidenceStorage.instance;
+      final photoPath = await storage.saveBase64(
         orderId: widget.orderId,
-        photoBase64: widget.photoBase64,
-        signatureBase64: widget.signatureBase64,
+        kind: 'photo',
+        value: widget.photoBase64,
+        extension: 'jpg',
+      );
+      final signaturePath = await storage.saveBase64(
+        orderId: widget.orderId,
+        kind: 'signature',
+        value: widget.signatureBase64,
+        extension: 'png',
       );
 
+      final localId = widget.orderId.replaceAll(
+        RegExp(r'[^a-zA-Z0-9_-]'),
+        '_',
+      );
+      await OfflineDatabase.instance.enqueueDelivery(
+        localId: localId,
+        orderId: widget.orderId,
+        photoPath: photoPath,
+        signaturePath: signaturePath,
+        timestamp: DateTime.now(),
+      );
+
+      final syncedIds =
+          await OfflineSyncService.instance.syncPendingDeliveries();
+      final pendingSync = !syncedIds.contains(localId);
+
       if (!mounted) return;
-
-      if (success) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DeliveryReceiptScreen(
-              orderId: widget.orderId,
-            ),
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DeliveryReceiptScreen(
+            orderId: widget.orderId,
+            pendingSync: pendingSync,
           ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'No se pudo registrar la entrega. Verifica tu conexión e inténtalo nuevamente.',
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('Error al confirmar entrega: $e');
-
+        ),
+      );
+    } catch (error) {
+      debugPrint('Error al guardar la entrega localmente: $error');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Ocurrió un error al sincronizar la entrega.'),
+            content: Text(
+              'No se pudo guardar la evidencia en este dispositivo. Inténtalo de nuevo.',
+            ),
             backgroundColor: Colors.red,
           ),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

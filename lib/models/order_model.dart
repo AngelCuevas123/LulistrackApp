@@ -5,7 +5,7 @@ class OrderModel {
   final String address;
   final String colony;
   final String estimatedTime;
-  final String status; // 'en_transito', 'entregado', 'cancelado'
+  final String status;
   final double? latitude;
   final double? longitude;
 
@@ -21,22 +21,26 @@ class OrderModel {
     this.longitude,
   });
 
-  // Constructor para convertir JSON (cuando te conectes a tu API de FastAPI)
   factory OrderModel.fromJson(Map<String, dynamic> json) {
+    double? parseCoordinate(dynamic value) {
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value);
+      return null;
+    }
+
     return OrderModel(
-      id: json['id'] ?? '',
-      trackingNumber: json['tracking_number'] ?? '',
-      clientName: json['client_name'] ?? '',
-      address: json['address'] ?? '',
-      colony: json['colony'] ?? '',
-      estimatedTime: json['estimated_time'] ?? '',
-      status: json['status'] ?? 'en_transito',
-      latitude: json['latitude']?.toDouble(),
-      longitude: json['longitude']?.toDouble(),
+      id: json['id']?.toString() ?? '',
+      trackingNumber: json['tracking_number']?.toString() ?? '',
+      clientName: json['client_name']?.toString() ?? '',
+      address: json['address']?.toString() ?? '',
+      colony: json['colony']?.toString() ?? '',
+      estimatedTime: json['estimated_time']?.toString() ?? '',
+      status: json['status']?.toString() ?? 'en_transito',
+      latitude: parseCoordinate(json['latitude']),
+      longitude: parseCoordinate(json['longitude']),
     );
   }
 
-  // Convertir a JSON para enviar datos al backend
   Map<String, dynamic> toJson() {
     return {
       'id': id,
