@@ -6,6 +6,14 @@ import '../models/order_model.dart';
 import '../models/user_model.dart';
 import 'offline_database.dart';
 
+class DeliverySubmissionException implements Exception {
+  final int statusCode;
+  final String responseBody;
+  const DeliverySubmissionException(this.statusCode, this.responseBody);
+  @override
+  String toString() => 'El servidor rechazó la entrega ($statusCode).';
+}
+
 class ApiService {
   // Dirección del backend configurada en .env.
   static String get baseUrl => dotenv.env['API_BASE_URL']!;
@@ -93,8 +101,7 @@ class ApiService {
       final cached = await OfflineDatabase.instance
           .getCachedOrders(group: 'active');
 
-      if (cached.isNotEmpty) return cached;
-      rethrow;
+      return cached;
     }
 
     if (response.statusCode == 200) {
@@ -121,7 +128,7 @@ class ApiService {
     final cached = await OfflineDatabase.instance
         .getCachedOrders(group: 'active');
 
-    if (cached.isNotEmpty && response.statusCode >= 500) {
+    if (response.statusCode >= 500) {
       return cached;
     }
 
@@ -147,8 +154,7 @@ class ApiService {
       final cached = await OfflineDatabase.instance
           .getCachedOrders(group: 'available');
 
-      if (cached.isNotEmpty) return cached;
-      rethrow;
+      return cached;
     }
 
     if (response.statusCode == 200) {
@@ -175,7 +181,7 @@ class ApiService {
     final cached = await OfflineDatabase.instance
         .getCachedOrders(group: 'available');
 
-    if (cached.isNotEmpty && response.statusCode >= 500) {
+    if (response.statusCode >= 500) {
       return cached;
     }
 
@@ -216,38 +222,30 @@ class ApiService {
     );
   }
 
-  // Envía fotografía y firma como comprobante de entrega.
+  // Los errores de red se propagan; los HTTP conservan su código para clasificarlos.
   static Future<bool> submitProofOfDelivery({
     required String orderId,
     required String photoBase64,
     required String signatureBase64,
   }) async {
-    try {
-      final String cleanId = orderId.replaceAll('#', '').trim();
-
-      final response = await http.post(
-        Uri.parse('$baseUrl/orders/$cleanId/complete'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (authToken != null)
-            'Authorization': 'Bearer $authToken',
-        },
-        body: json.encode({
-          'photo_base64': photoBase64,
-          'signature_base64': signatureBase64,
-          'timestamp': DateTime.now().toIso8601String(),
-        }),
-      ).timeout(const Duration(seconds: 90));
-
-      print('Respuesta de FastAPI: ${response.statusCode}');
-      print('Detalle: ${response.body}');
-
-      return response.statusCode == 200 ||
-          response.statusCode == 201;
-    } catch (e) {
-      print('Error al enviar evidencia: $e');
-      return false;
+    final cleanId = orderId.replaceAll('#', '').trim();
+    final response = await http.post(
+      Uri.parse('$baseUrl/orders/$cleanId/complete'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (authToken != null) 'Authorization': 'Bearer $authToken',
+      },
+      body: json.encode({
+        'photo_base64': photoBase64,
+        'signature_base64': signatureBase64,
+        'timestamp': DateTime.now().toIso8601String(),
+      }),
+    ).timeout(const Duration(seconds: 90));
+    print('Respuesta de FastAPI: ${response.statusCode}');
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return true;
     }
+    throw DeliverySubmissionException(response.statusCode, response.body);
   }
 
   // Recupera el perfil del repartidor autenticado.
