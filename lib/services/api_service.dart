@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../models/order_model.dart';
 import '../models/user_model.dart';
+import 'offline_database.dart';
 
 class ApiService {
   // Tomo la direccion del backend desde .env para poder cambiar de entorno sin editar el codigo.
@@ -17,53 +18,58 @@ class ApiService {
 
   // Aqui consulto los pedidos que tiene asignados el repartidor.
   static Future<List<OrderModel>> getActiveOrders() async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/orders/my'),
-      headers: {
-        'Content-Type': 'application/json',
-        if (authToken != null)
-          'Authorization': 'Bearer $authToken',
-      },
-    ).timeout(const Duration(seconds: 45));
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/orders/my'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+      ).timeout(const Duration(seconds: 45));
 
-    print('Respuesta de pedidos: ${response.statusCode}');
-    print('Detalle: ${response.body}');
-
-    if (response.statusCode == 200) {
-      final List data = json.decode(response.body);
-
-      return data
-          .map((model) => OrderModel.fromJson(model))
-          .toList();
+      if (response.statusCode == 200) {
+        final List data = json.decode(response.body);
+        final orders = data.map((model) => OrderModel.fromJson(model)).toList();
+        await OfflineDatabase.instance.cacheOrders(orders, group: 'active');
+        return orders;
+      }
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        throw Exception('No tienes autorización para consultar tus pedidos (' + response.statusCode.toString() + ').');
+      }
+      throw Exception('Error al cargar mis pedidos: ' + response.statusCode.toString());
+    } catch (_) {
+      final cached = await OfflineDatabase.instance.getCachedOrders(group: 'active');
+      if (cached.isNotEmpty) return cached;
+      rethrow;
     }
-
-    throw Exception(
-      'Error al cargar mis pedidos: ${response.statusCode} - ${response.body}',
-    );
   }
 
-  // Aqui recupero los pedidos que todavia puede aceptar el repartidor.
+  // Consulta pedidos disponibles y conserva la última respuesta para modo sin conexión.
   static Future<List<OrderModel>> getAvailableOrders() async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/orders/available'),
-      headers: {
-        'Content-Type': 'application/json',
-        if (authToken != null)
-          'Authorization': 'Bearer $authToken',
-      },
-    ).timeout(const Duration(seconds: 45));
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/orders/available'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (authToken != null) 'Authorization': 'Bearer $authToken',
+        },
+      ).timeout(const Duration(seconds: 45));
 
-    if (response.statusCode == 200) {
-      final List data = json.decode(response.body);
-
-      return data
-          .map((order) => OrderModel.fromJson(order))
-          .toList();
+      if (response.statusCode == 200) {
+        final List data = json.decode(response.body);
+        final orders = data.map((order) => OrderModel.fromJson(order)).toList();
+        await OfflineDatabase.instance.cacheOrders(orders, group: 'available');
+        return orders;
+      }
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        throw Exception('No tienes autorización para consultar pedidos disponibles (' + response.statusCode.toString() + ').');
+      }
+      throw Exception('Error al obtener pedidos disponibles: ' + response.statusCode.toString());
+    } catch (_) {
+      final cached = await OfflineDatabase.instance.getCachedOrders(group: 'available');
+      if (cached.isNotEmpty) return cached;
+      rethrow;
     }
-
-    throw Exception(
-      'Error al obtener pedidos disponibles: ${response.statusCode} - ${response.body}',
-    );
   }
 
   // Aqui envio la solicitud para que el repartidor tome un pedido disponible.
