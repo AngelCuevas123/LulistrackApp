@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class DeliveryReceiptScreen extends StatelessWidget {
   final String orderId;
   final bool pendingSync;
+  final String? syncError;
 
   const DeliveryReceiptScreen({
     super.key,
     required this.orderId,
     this.pendingSync = false,
+    this.syncError,
   });
 
   // Paleta de colores oficial
@@ -74,14 +76,22 @@ class DeliveryReceiptScreen extends StatelessWidget {
                       ),
                       alignment: Alignment.center,
                       child: Icon(
-                        pendingSync ? Icons.cloud_upload_outlined : Icons.check_rounded,
-                        color: pendingSync ? const Color(0xFF9A3412) : primaryNavy,
+                        syncError != null
+                            ? Icons.error_outline_rounded
+                            : pendingSync
+                                ? Icons.cloud_upload_outlined
+                                : Icons.check_rounded,
+                        color: syncError != null || pendingSync
+                            ? const Color(0xFF9A3412)
+                            : primaryNavy,
                         size: 36,
                       ),
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      pendingSync ? 'Entrega guardada' : 'Entrega Completada',
+                      syncError != null || pendingSync
+                          ? 'Entrega guardada'
+                          : 'Entrega Completada',
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -90,9 +100,11 @@ class DeliveryReceiptScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      pendingSync
-                          ? 'La evidencia está guardada y se enviará cuando vuelva la conexión.'
-                          : 'Otro pedido entregado satisfactoriamente',
+                      syncError != null
+                          ? 'El servidor no aceptó la evidencia. Revisa los datos o contacta al administrador; no es un problema de conexión.'
+                          : pendingSync
+                              ? 'La evidencia quedó guardada. Se reintentará cuando el servidor vuelva a estar disponible.'
+                              : 'Otro pedido entregado satisfactoriamente',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 13,
@@ -136,15 +148,29 @@ class DeliveryReceiptScreen extends StatelessWidget {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 5),
                                 decoration: BoxDecoration(
-                                  color: pendingSync ? const Color(0xFF9A3412) : statusGreenBg,
+                                  color: syncError != null || pendingSync
+                                      ? const Color(0xFF9A3412)
+                                      : statusGreenBg,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(pendingSync ? Icons.cloud_upload_outlined : Icons.check, size: 12, color: Colors.white),
+                                    Icon(
+                                      syncError != null
+                                          ? Icons.error_outline
+                                          : pendingSync
+                                              ? Icons.cloud_upload_outlined
+                                              : Icons.check,
+                                      size: 12,
+                                      color: Colors.white,
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      pendingSync ? 'PENDIENTE' : 'ENTREGADO',
+                                      syncError != null
+                                          ? 'REVISAR'
+                                          : pendingSync
+                                              ? 'PENDIENTE'
+                                              : 'ENTREGADO',
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 10,
