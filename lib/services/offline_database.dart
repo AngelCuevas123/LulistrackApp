@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
@@ -8,7 +9,7 @@ class OfflineDatabase {
 
   static final OfflineDatabase instance = OfflineDatabase._();
   static const _databaseName = 'lulistrack_offline.db';
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
 
   Database? _database;
 
@@ -38,6 +39,14 @@ class OfflineDatabase {
         ''');
 
         await db.execute('''
+          CREATE TABLE cached_history (
+            id TEXT PRIMARY KEY,
+            payload TEXT NOT NULL,
+            cached_at TEXT NOT NULL
+          )
+        ''');
+
+        await db.execute('''
           CREATE TABLE pending_deliveries (
             local_id TEXT PRIMARY KEY,
             order_id TEXT NOT NULL,
@@ -57,6 +66,17 @@ class OfflineDatabase {
         await db.execute(
           'CREATE INDEX idx_cached_group ON cached_orders(cache_group)',
         );
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('''
+            CREATE TABLE cached_history (
+              id TEXT PRIMARY KEY,
+              payload TEXT NOT NULL,
+              cached_at TEXT NOT NULL
+            )
+          ''');
+        }
       },
     );
     return _database!;
@@ -104,6 +124,39 @@ class OfflineDatabase {
       orderBy: 'cached_at DESC',
     );
     return rows.map((row) => OrderModel.fromJson(row)).toList();
+  }
+
+
+  Future<void> cacheCompletedOrders(List<Map<String, dynamic>> orders) async {
+    final db = await database;
+    final now = DateTime.now().toIso8601String();
+    await db.transaction((txn) async {
+      await txn.delete('cached_history');
+      final batch = txn.batch();
+      for (final order in orders) {
+        final rawId = order['id']?.toString() ?? '';
+        final id = rawId.trim().isNotEmpty
+            ? rawId
+            : order['tracking_number']?.toString() ?? '';
+        if (id.trim().isEmpty) continue;
+        batch.insert(
+          'cached_history',
+          {'id': id, 'payload': jsonEncode(order), 'cached_at': now},
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+      await batch.commit(noResult: true);
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getCachedCompletedOrders() async {
+    final db = await database;
+    final rows = await db.query('cached_history', orderBy: 'cached_at DESC');
+    return rows
+        .map((row) => jsonDecode(row['payload'] as String))
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
   }
 
   Future<void> enqueueDelivery({
