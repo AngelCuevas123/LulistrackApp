@@ -203,6 +203,23 @@ class OfflineDatabase {
     );
   }
 
+  Future<void> markDeliveryNeedsAttention(
+    String localId,
+    String error,
+  ) async {
+    final db = await database;
+    await db.update(
+      'pending_deliveries',
+      {
+        'status': 'needs_attention',
+        'last_error': error,
+        'attempts': 1,
+      },
+      where: 'local_id = ?',
+      whereArgs: [localId],
+    );
+  }
+
   Future<void> recordDeliveryFailure(
     String localId,
     String error,
