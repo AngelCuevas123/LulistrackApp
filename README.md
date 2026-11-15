@@ -1,271 +1,195 @@
-# Lulistrack App
+# Lulistrack App — 3.0
 
-Aplicacion movil de **Lulistrack**, una plataforma de seguimiento y gestion de entregas de ultima milla. Esta app esta dirigida al repartidor y se conecta con el backend de FastAPI para consultar pedidos, aceptar entregas y registrar comprobantes.
+Aplicación móvil para repartidores de **Lulistrack**, una plataforma de gestión y seguimiento de entregas de última milla. Permite consultar pedidos, aceptar entregas disponibles, registrar comprobantes y continuar trabajando cuando no hay conexión a internet.
 
-## Descripcion general
+Este repositorio contiene la aplicación móvil desarrollada con Flutter.
 
-Lulistrack ayuda al repartidor a consultar sus pedidos, revisar la informacion de cada entrega, abrir la ubicacion en Google Maps y registrar la entrega mediante evidencia fotografica y firma del destinatario.
+## Ecosistema Lulistrack
 
-La aplicacion forma parte del ecosistema Lulistrack:
+| Componente | Tecnología | Repositorio |
+| --- | --- | --- |
+| Aplicación móvil | Flutter y Dart | Este repositorio |
+| API y lógica de negocio | FastAPI y Python | [BackendLulistrack](https://github.com/AngelCuevas123/BackendLulistrack/tree/lulistrack-3.0) |
+| Panel administrativo | React y Vite | [LulistrackDashboard](https://github.com/AngelCuevas123/LulistrackDashboard/tree/lulistrack-3.0) |
+| Datos y autenticación | Supabase Auth y PostgreSQL | Proyecto Supabase |
+| Notificaciones push | Firebase Messaging e Installation ID | Proyecto Firebase |
 
-## Como se autoriza el acceso a la app
+## Funcionalidades principales
 
-En Lulistrack no existe un registro publico desde la aplicacion movil. El acceso de cada repartidor se habilita desde el Dashboard por una cuenta con permisos de administrador.
-
-1. El administrador inicia sesion en el [Dashboard de Lulistrack](https://lulistrack-dashboard.vercel.app). credenciales de prueba: xpnewsgaming@gmail.com password": 170678
-2. Entra a la seccion **Repartidores** y selecciona **Nuevo repartidor**.
-3. Captura el nombre, correo electronico, contraseña inicial y vehiculo.
-4. Al confirmar, el backend verifica que la solicitud venga de un administrador autorizado. Despues crea la cuenta en **Supabase Auth**, confirma el correo y registra el perfil del repartidor en PostgreSQL.
-5. El repartidor abre esta app e inicia sesion con el mismo correo y contraseña que el administrador registro.
-
-Este proceso vincula la cuenta de autenticacion con el perfil de repartidor. Por eso, crear el usuario desde el Dashboard es el paso necesario para que pueda entrar a Flutter. No se debe crear la cuenta directamente desde la pantalla movil ni compartir credenciales administrativas.
-
-| Componente | Tecnologia | Ubicacion |
-|---|---|---|
-| App movil | Flutter y Dart | Este repositorio |
-| API | FastAPI y Python | [BackendLulistrack](https://github.com/AngelCuevas123/BackendLulistrack) |
-| Dashboard web | React y Vite | [LulistrackDashboard](https://github.com/AngelCuevas123/LulistrackDashboard) |
-| Base de datos y autenticacion | Supabase y PostgreSQL | Proyecto Supabase |
-
-## Funcionalidades
-
-### Cuenta y acceso
-- Inicio de sesion con correo y contrasena mediante Supabase Auth.
-- Envio del token de sesion en las solicitudes protegidas al backend.
-
-### Pedidos y rutas
-- Consulta de pedidos asignados al repartidor.
-- Consulta de pedidos disponibles.
-- Aceptacion de pedidos disponibles.
-- Busqueda de pedidos por cliente, numero de seguimiento o direccion.
-- Consulta del detalle de cada pedido.
-- Apertura de la ubicacion del pedido en Google Maps mediante un enlace externo.
-- Actualizacion de las listas mediante gesto de recarga.
-
-### Comprobante de entrega
-- Captura de fotografia con la camara del dispositivo.
-- Captura de firma del destinatario en pantalla.
-- Vista previa y confirmacion del comprobante.
-- Envio de fotografia y firma codificadas en Base64 al backend.
-- Pantalla de recibo al completar el envio.
-
-### Historial y perfil
+### Pedidos y entregas
+- Inicio de sesión del repartidor mediante Supabase Auth.
+- Consulta de pedidos asignados y disponibles.
+- Aceptación de pedidos disponibles.
+- Consulta del detalle y ubicación de cada pedido.
+- Apertura de ubicaciones mediante Google Maps.
+- Registro de evidencia de entrega con fotografía y firma del destinatario.
 - Consulta del historial de entregas completadas.
-- Pantallas de perfil, datos personales, notificaciones, seguridad y ayuda.
-- Secciones de manual del repartidor, soporte tecnico y reporte de problemas.
 
-> Algunas pantallas de perfil, configuracion y soporte contienen actualmente contenido de muestra o elementos de interfaz. Consulta la seccion de pendientes antes de considerar esas funciones terminadas.
+### Funcionamiento Offline-First
+- Almacenamiento local de pedidos e historial mediante SQLite.
+- Conservación local de fotografías y firmas cuando no hay conexión.
+- Cola de entregas pendientes de sincronización.
+- Reintento de envío al recuperar la conectividad.
+- Identificación de entregas que requieren atención cuando el servidor rechaza la evidencia o faltan archivos locales.
+- Consulta de información almacenada cuando la API no está disponible.
 
-## Tecnologias
+La sincronización requiere una sesión válida. Si la sesión expira, el repartidor debe volver a iniciar sesión para continuar.
 
-- **Flutter / Dart:** desarrollo de la aplicacion movil.
-- **Supabase Flutter:** autenticacion y manejo de sesiones.
-- **HTTP:** comunicacion con la API REST.
-- **FastAPI:** backend que administra pedidos y repartidores.
-- **PostgreSQL en Supabase:** persistencia de datos del sistema.
-- **image_picker:** captura de fotografia.
-- **url_launcher:** apertura de ubicaciones en Google Maps.
-- **intl:** utilidades de formato.
-- **flutter_launcher_icons:** generacion de iconos de la aplicacion.
+### Notificaciones push
+- Integración con Firebase Messaging.
+- Registro del Firebase Installation ID (FID) en el backend después del inicio de sesión.
+- Asociación del dispositivo con el perfil del repartidor.
+- Recepción de notificaciones de asignación de pedidos.
+- Desactivación del dispositivo en el backend al cerrar sesión.
 
-## Arquitectura del proyecto
+## Tecnologías
 
-La aplicacion utiliza una organizacion sencilla por responsabilidades: modelos para representar datos, servicios para comunicarse con el backend, pantallas para la interfaz y widgets reutilizables.
+- **Flutter / Dart:** aplicación móvil.
+- **Supabase Flutter:** autenticación y sesión.
+- **Firebase Core y Firebase Messaging:** inicialización y notificaciones push.
+- **Firebase Installation ID:** identificación de la instalación que recibe notificaciones.
+- **SQLite (sqflite):** caché de pedidos e historial y cola local.
+- **connectivity_plus:** detección de cambios de conectividad.
+- **HTTP:** comunicación con la API REST.
+- **image_picker:** captura de fotografías.
+- **url_launcher y google_maps_flutter:** apertura y visualización de ubicaciones.
 
-```text
-lulistrack_app/
-├── android/                         # Configuracion nativa Android
-├── ios/                             # Configuracion nativa iOS
-├── linux/                           # Configuracion Linux generada por Flutter
-├── macos/                           # Configuracion macOS generada por Flutter
-├── web/                             # Configuracion web generada por Flutter
-├── windows/                         # Configuracion Windows generada por Flutter
-├── assets/
-│   └── icon/
-│       └── lulistrack_icon.png      # Icono de la aplicacion
-├── lib/
-│   ├── main.dart                    # Inicializacion de Supabase y aplicacion
-│   ├── models/
-│   │   ├── order_model.dart         # Modelo de pedidos
-│   │   └── user_model.dart          # Modelo de repartidor
-│   ├── screens/
-│   │   ├── login_screen.dart        # Inicio de sesion
-│   │   ├── main_navigation.dart     # Navegacion principal
-│   │   ├── home_screen.dart         # Inicio y pedidos
-│   │   ├── my_route_screen.dart     # Pedidos asignados / entregas
-│   │   ├── route_list_screen.dart   # Lista y apertura de ubicaciones
-│   │   ├── order_detail_screen.dart # Detalle del pedido
-│   │   ├── history_screen.dart      # Historial completado
-│   │   ├── home_delivered_screen.dart
-│   │   ├── photo_evidence_screen.dart
-│   │   ├── signature_screen.dart
-│   │   ├── delivery_review_screen.dart
-│   │   ├── delivery_receipt_screen.dart
-│   │   ├── proof_of_delivery_screen.dart
-│   │   ├── profile_screen.dart
-│   │   ├── personal_data_screen.dart
-│   │   ├── notifications_settings_screen.dart
-│   │   ├── security_privacy_screen.dart
-│   │   ├── help_support_screen.dart
-│   │   ├── tech_support_screen.dart
-│   │   ├── bug_report_screen.dart
-│   │   └── driver_manual_screen.dart
-│   ├── services/
-│   │   └── api_service.dart         # Solicitudes HTTP al backend
-│   └── widgets/
-│       ├── custom_button.dart       # Boton reutilizable
-│       └── order_card.dart          # Tarjeta de pedido
-├── test/
-│   └── widget_test.dart             # Prueba basica de interfaz
-├── .env.example                    # Plantilla de configuracion (sin claves reales)
-├── .gitignore
-├── analysis_options.yaml
-├── pubspec.yaml
-├── pubspec.lock
-└── README.md
-```
+## Arquitectura
 
-## Servicios y comunicacion con el backend
+~~~text
+lib/
+├── main.dart
+├── firebase_options.dart
+├── models/                  # Modelos de pedidos y usuarios
+├── screens/                 # Inicio, pedidos, historial y comprobante
+├── services/
+│   ├── api_service.dart
+│   ├── notification_service.dart
+│   ├── offline_database.dart
+│   ├── offline_evidence_storage.dart
+│   └── offline_sync_service.dart
+└── widgets/                 # Componentes reutilizables
 
-La clase `ApiService` centraliza las solicitudes principales. La URL base configurada actualmente es:
+assets/
+└── icon/
+    └── lulistrack_icon.png
 
-```text
+.env.example
+pubspec.yaml
+~~~
+
+## Comunicación con la API
+
+La URL base se configura mediante **API_BASE_URL**. En el entorno desplegado se utiliza:
+
+~~~text
 https://backendlulistrack.onrender.com
-```
+~~~
 
-| Operacion en la app | Endpoint |
-|---|---|
-| Pedidos asignados al repartidor | `GET /orders/my` |
-| Pedidos disponibles | `GET /orders/available` |
-| Aceptar un pedido | `POST /orders/{order_id}/claim` |
-| Completar entrega con evidencia | `POST /orders/{order_id}/complete` |
-| Consultar perfil del repartidor | `GET /drivers/{driver_id}` |
-| Historial de entregas | `GET /orders/my/completed` |
+| Operación | Endpoint |
+| --- | --- |
+| Pedidos asignados | GET /orders/my |
+| Pedidos disponibles | GET /orders/available |
+| Aceptar un pedido | POST /orders/{order_id}/claim |
+| Completar una entrega | POST /orders/{order_id}/complete |
+| Historial del repartidor | GET /orders/my/completed |
+| Perfil del repartidor | GET /drivers/me |
+| Registrar dispositivo para notificaciones | POST /drivers/me/fcm-token |
+| Desactivar dispositivo al cerrar sesión | DELETE /drivers/me/fcm-token |
 
-Las rutas protegidas reciben el token de Supabase en el encabezado:
-
-```http
-Authorization: Bearer <access_token>
-```
-
-El comprobante de entrega envia la fotografia y la firma como cadenas Base64, junto con la fecha y hora del registro.
-
-La pantalla de historial realiza actualmente su solicitud HTTP directamente, en lugar de utilizar `ApiService`.
+Las rutas protegidas reciben el token de acceso de Supabase en el encabezado Authorization: Bearer.
 
 ## Requisitos
 
-- Flutter SDK compatible con el SDK declarado en `pubspec.yaml`.
-- Dart SDK compatible con el proyecto.
+- Flutter SDK y Dart SDK compatibles con pubspec.yaml.
 - Android Studio o Visual Studio Code.
-- Un emulador Android o dispositivo fisico.
-- Acceso al proyecto Supabase y al backend de Lulistrack.
+- Emulador Android o dispositivo Android físico.
+- Acceso al proyecto de Supabase.
+- Proyecto Firebase configurado para la aplicación Android.
+- Backend de Lulistrack disponible.
 
-## Instalacion y ejecucion
+## Instalación
 
-Clona el repositorio:
+Clona la rama 3.0:
 
-```bash
-git clone https://github.com/AngelCuevas123/LulistrackApp.git
+~~~bash
+git clone --branch lulistrack-3.0 https://github.com/AngelCuevas123/LulistrackApp.git
 cd LulistrackApp
-```
-
-Instala las dependencias:
-
-```bash
 flutter pub get
-```
+~~~
 
-Verifica la instalacion:
+Crea el archivo local de variables de entorno a partir de la plantilla:
 
-```bash
-flutter doctor
-```
+**Windows PowerShell**
+~~~powershell
+Copy-Item .env.example .env
+~~~
 
-Ejecuta la aplicacion:
+**macOS / Linux**
+~~~bash
+cp .env.example .env
+~~~
 
-```bash
+Configura los valores de tu propio proyecto:
+
+~~~env
+SUPABASE_URL=https://tu-proyecto.supabase.co
+SUPABASE_ANON_KEY=tu_clave_publica
+API_BASE_URL=https://backendlulistrack.onrender.com
+~~~
+
+La app utiliza la clave pública de Supabase. No agregues claves privadas, contraseñas ni archivos de cuenta de servicio al repositorio.
+
+Ejecuta la aplicación:
+
+~~~bash
 flutter run
-```
+~~~
 
-## Configuracion local
+## Firebase y notificaciones
 
-La aplicacion carga al iniciar las variables de conexion de Supabase y del backend desde el archivo local `.env`.
+La configuración de Firebase para las plataformas se encuentra en lib/firebase_options.dart y en los archivos nativos correspondientes. El backend necesita su propia cuenta de servicio de Firebase Admin SDK, configurada mediante FIREBASE_CREDENTIALS_PATH en el entorno del servidor.
 
-1. Copia el archivo de ejemplo:
-   ```bash
-   copy .env.example .env
-   ```
-   En macOS o Linux puedes usar `cp .env.example .env`.
-2. Abre `.env` y coloca los valores de tu proyecto:
-   ```env
-   SUPABASE_URL=https://tu-proyecto.supabase.co
-   SUPABASE_ANON_KEY=tu_clave_publica_anon_o_publishable
-   API_BASE_URL=https://tu-backend.onrender.com
-   ```
-3. Instala las dependencias y ejecuta la app:
-   ```bash
-   flutter pub get
-   flutter run
-   ```
+No publiques archivos JSON de cuentas de servicio ni claves privadas. La app registra el FID en el backend al iniciar sesión; el backend utiliza ese identificador para enviar notificaciones al dispositivo activo.
 
-Cada entorno utiliza su propio archivo `.env`, creado a partir de `.env.example`.
+## Pruebas y análisis
 
-La app movil utiliza la clave publica de Supabase. La autenticacion se gestiona con Supabase Auth y las operaciones protegidas se validan en el backend.
+Para revisar el código y ejecutar las pruebas disponibles:
 
-### Backend
-
-La URL de la API se define mediante `API_BASE_URL` en `.env`. Si cambio de entorno, actualizo ese valor sin modificar el codigo fuente.
-
-### Permisos Android
-
-El manifiesto de Android declara permisos de internet, camara y ubicacion. El sistema solicita los permisos correspondientes cuando una funcion del dispositivo los necesita.
-
-## Pruebas y analisis
-
-He probado la aplicacion en dispositivos Android e iOS y confirme su funcionamiento durante el uso del proyecto. Para repetir las verificaciones tecnicas desde otro equipo, ejecuto:
-
-Ejecuta el analizador estatico:
-
-```bash
+~~~bash
 flutter analyze
-```
-
-Ejecuta las pruebas:
-
-```bash
 flutter test
-```
+~~~
 
-## Compilacion
+La versión 3.0 fue probada funcionalmente en Android en estos escenarios:
+- Inicio de sesión y recepción de notificaciones con la app en segundo plano y con la pantalla bloqueada.
+- Consulta de Inicio e Historial sin conexión.
+- Registro local de una entrega sin internet y sincronización al recuperar la conexión.
 
-Generar APK de Android:
+Estas comprobaciones funcionales no sustituyen la ejecución de pruebas automatizadas en cada entorno.
 
-```bash
+## Compilación Android
+
+~~~bash
 flutter build apk --release
-```
+~~~
 
-Generar Android App Bundle:
+El archivo se genera en:
 
-```bash
-flutter build appbundle --release
-```
+~~~text
+build/app/outputs/flutter-apk/app-release.apk
+~~~
 
-Los archivos se generan en:
+Antes de distribuir una versión pública, configura una firma de lanzamiento propia y revisa los requisitos de la tienda de aplicaciones.
 
-- APK: `build/app/outputs/flutter-apk/app-release.apk`
-- AAB: `build/app/outputs/bundle/release/app-release.aab`
+## Repositorios
 
-Para distribuir la app en produccion, configura una firma de lanzamiento propia. La configuracion actual de Gradle utiliza la firma de depuracion para el tipo `release`, por lo que no debe considerarse lista para publicar en Google Play.
-
-## Estado de validacion
-
-He ejecutado y probado la aplicacion en Android y iOS durante el desarrollo. La configuracion de lanzamiento para distribucion publica (por ejemplo, firma propia para Google Play o App Store) se debe preparar de acuerdo con los requisitos de cada tienda.
-## Repositorios relacionados
-
-- [BackendLulistrack](https://github.com/AngelCuevas123/BackendLulistrack)
-- [LulistrackDashboard](https://github.com/AngelCuevas123/LulistrackDashboard)
-- [LulistrackApp](https://github.com/AngelCuevas123/LulistrackApp)
+- [Aplicación móvil — rama 3.0](https://github.com/AngelCuevas123/LulistrackApp/tree/lulistrack-3.0)
+- [Backend — rama 3.0](https://github.com/AngelCuevas123/BackendLulistrack/tree/lulistrack-3.0)
+- [Dashboard — rama 3.0](https://github.com/AngelCuevas123/LulistrackDashboard/tree/lulistrack-3.0)
+- [Dashboard desplegado](https://lulistrack-dashboard.vercel.app)
+- [API y documentación](https://backendlulistrack.onrender.com/docs)
 
 ---
 
-**Lulistrack** — seguimiento y gestion de entregas de ultima milla.
+**Lulistrack 3.0** — aplicación móvil para la operación y seguimiento de entregas de última milla.
