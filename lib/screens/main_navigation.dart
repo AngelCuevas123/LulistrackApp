@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
+import '../services/driver_location_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import '../models/order_model.dart';
@@ -18,13 +20,14 @@ class MainNavigationScreen extends StatefulWidget {
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class _MainNavigationScreenState extends State<MainNavigationScreen> with WidgetsBindingObserver {
   int _currentIndex = 0;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _connectivitySubscription =
         Connectivity().onConnectivityChanged.listen((results) {
       final hasConnection =
@@ -36,12 +39,26 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(OfflineSyncService.instance.syncPendingDeliveries().then((_) {}));
+      unawaited(DriverLocationService.instance.start());
     });
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(DriverLocationService.instance.resume());
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      unawaited(DriverLocationService.instance.pause());
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _connectivitySubscription?.cancel();
+    unawaited(DriverLocationService.instance.stop());
     super.dispose();
   }
 
