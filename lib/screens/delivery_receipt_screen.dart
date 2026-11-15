@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 class DeliveryReceiptScreen extends StatelessWidget {
   final String orderId;
+  final bool pendingSync;
 
   const DeliveryReceiptScreen({
     super.key,
-    this.orderId = '#LT-543210',
+    required this.orderId,
+    this.pendingSync = false,
   });
 
   // Paleta de colores oficial
@@ -71,22 +73,28 @@ class DeliveryReceiptScreen extends StatelessWidget {
                         ],
                       ),
                       alignment: Alignment.center,
-                      child: const Icon(Icons.check_rounded,
-                          color: primaryNavy, size: 36),
+                      child: Icon(
+                        pendingSync ? Icons.cloud_upload_outlined : Icons.check_rounded,
+                        color: pendingSync ? const Color(0xFF9A3412) : primaryNavy,
+                        size: 36,
+                      ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      'Entrega Completada',
-                      style: TextStyle(
+                    Text(
+                      pendingSync ? 'Entrega guardada' : 'Entrega Completada',
+                      style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: primaryNavy,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      'Otro pedido entregado satisfactoriamente',
-                      style: TextStyle(
+                    Text(
+                      pendingSync
+                          ? 'La evidencia está guardada y se enviará cuando vuelva la conexión.'
+                          : 'Otro pedido entregado satisfactoriamente',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
                         fontSize: 13,
                         color: textGray,
                         fontWeight: FontWeight.w500,
@@ -128,16 +136,16 @@ class DeliveryReceiptScreen extends StatelessWidget {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 5),
                                 decoration: BoxDecoration(
-                                  color: statusGreenBg,
+                                  color: pendingSync ? const Color(0xFF9A3412) : statusGreenBg,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Row(
+                                child: Row(
                                   children: [
-                                    Icon(Icons.check, size: 12, color: Colors.white),
-                                    SizedBox(width: 4),
+                                    Icon(pendingSync ? Icons.cloud_upload_outlined : Icons.check, size: 12, color: Colors.white),
+                                    const SizedBox(width: 4),
                                     Text(
-                                      'ENTREGADO',
-                                      style: TextStyle(
+                                      pendingSync ? 'PENDIENTE' : 'ENTREGADO',
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
