@@ -126,7 +126,7 @@ class OfflineDatabase {
         'attempts': 0,
         'created_at': DateTime.now().toIso8601String(),
       },
-      conflictAlgorithm: ConflictAlgorithm.abort,
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
