@@ -22,7 +22,8 @@ class OfflineSyncService {
   static final OfflineSyncService instance = OfflineSyncService._();
 
   Future<DeliverySyncResult> syncPendingDeliveries() async {
-    if (ApiService.authToken == null || ApiService.authToken!.isEmpty) {
+    final pending = await OfflineDatabase.instance.getPendingDeliveries();
+    if (pending.isEmpty) {
       return const DeliverySyncResult(
         syncedIds: <String>{},
         pendingIds: <String>{},
@@ -30,7 +31,18 @@ class OfflineSyncService {
       );
     }
 
-    final pending = await OfflineDatabase.instance.getPendingDeliveries();
+    if (ApiService.authToken == null || ApiService.authToken!.isEmpty) {
+      return DeliverySyncResult(
+        syncedIds: <String>{},
+        pendingIds: <String>{},
+        rejected: {
+          for (final item in pending)
+            if (item['local_id'] != null)
+              item['local_id'].toString():
+                  'No hay una sesión activa. Inicia sesión para sincronizar la evidencia.',
+        },
+      );
+    }
     final syncedIds = <String>{};
     final pendingIds = <String>{};
     final rejected = <String, String>{};
@@ -53,7 +65,10 @@ class OfflineSyncService {
         final signatureFile = File(signaturePath);
         if (!await photoFile.exists() || !await signatureFile.exists()) {
           const message = 'No se encontraron los archivos de evidencia en el dispositivo.';
-          await OfflineDatabase.instance.recordDeliveryFailure(localId, message);
+          await OfflineDatabase.instance.markDeliveryNeedsAttention(
+            localId,
+            message,
+          );
           rejected[localId] = message;
           continue;
         }
@@ -87,13 +102,31 @@ class OfflineSyncService {
             error.statusCode < 500 &&
             error.statusCode != 408 &&
             error.statusCode != 429;
-        await OfflineDatabase.instance.recordDeliveryFailure(
-          localId,
-          error.toString(),
-        );
         if (permanentHttpError) {
-          rejected[localId] = error.toString();
+          await OfflineDatabase.instance.recordDeliveryFailure(
+            localId,
+            error.toString(),
+          );
+          if (error is DeliverySubmissionException &&
+              error.statusCode != 401 &&
+              error.statusCode != 403) {
+            await OfflineDatabase.instance.markDeliveryNeedsAttention(
+              localId,
+              error.toString(),
+            );
+          }
+          rejected[localId] = error is DeliverySubmissionException &&
+                  error.statusCode == 401
+              ? 'Tu sesión ha expirado. Inicia sesión nuevamente para sincronizar.'
+              : error is DeliverySubmissionException &&
+                      error.statusCode == 403
+                  ? 'Tu cuenta no tiene permiso para completar esta entrega.'
+                  : 'El servidor rechazó la evidencia. Revisa los datos de la entrega.';
         } else {
+          await OfflineDatabase.instance.recordDeliveryFailure(
+            localId,
+            error.toString(),
+          );
           pendingIds.add(localId);
         }
       }
