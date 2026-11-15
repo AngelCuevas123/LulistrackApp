@@ -68,9 +68,10 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
         timestamp: DateTime.now(),
       );
 
-      final syncedIds =
+      final syncResult =
           await OfflineSyncService.instance.syncPendingDeliveries();
-      final pendingSync = !syncedIds.contains(localId);
+      final pendingSync = syncResult.pendingIds.contains(localId);
+      final syncError = syncResult.rejected[localId];
 
       if (!mounted) return;
       Navigator.pushReplacement(
@@ -79,6 +80,7 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
           builder: (context) => DeliveryReceiptScreen(
             orderId: widget.orderId,
             pendingSync: pendingSync,
+            syncError: syncError,
           ),
         ),
       );
