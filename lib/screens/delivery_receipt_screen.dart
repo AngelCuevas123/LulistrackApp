@@ -100,11 +100,10 @@ class DeliveryReceiptScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      syncError != null
-                          ? syncError
-                          : pendingSync
+                      syncError ??
+                          (pendingSync
                               ? 'La evidencia quedó guardada. Se reintentará cuando el servidor vuelva a estar disponible.'
-                              : 'Otro pedido entregado satisfactoriamente',
+                              : 'Otro pedido entregado satisfactoriamente'),
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 13,
