@@ -27,6 +27,7 @@ class DriverLocationService {
 
   Future<void> resume() async {
     if (!_running) return;
+    _permissionBlocked = false;
     _scheduleRefresh();
     await _refreshTrackingState();
   }
