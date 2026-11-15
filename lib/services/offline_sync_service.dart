@@ -5,18 +5,35 @@ import 'api_service.dart';
 import 'offline_database.dart';
 import 'offline_evidence_storage.dart';
 
+class DeliverySyncResult {
+  final Set<String> syncedIds;
+  final Set<String> pendingIds;
+  final Map<String, String> rejected;
+  const DeliverySyncResult({
+    required this.syncedIds,
+    required this.pendingIds,
+    required this.rejected,
+  });
+}
+
 class OfflineSyncService {
   OfflineSyncService._();
 
   static final OfflineSyncService instance = OfflineSyncService._();
 
-  Future<Set<String>> syncPendingDeliveries() async {
+  Future<DeliverySyncResult> syncPendingDeliveries() async {
     if (ApiService.authToken == null || ApiService.authToken!.isEmpty) {
-      return <String>{};
+      return const DeliverySyncResult(
+        syncedIds: <String>{},
+        pendingIds: <String>{},
+        rejected: <String, String>{},
+      );
     }
 
     final pending = await OfflineDatabase.instance.getPendingDeliveries();
     final syncedIds = <String>{};
+    final pendingIds = <String>{};
+    final rejected = <String, String>{};
 
     for (final item in pending) {
       final localId = item['local_id']?.toString();
@@ -35,10 +52,9 @@ class OfflineSyncService {
         final photoFile = File(photoPath);
         final signatureFile = File(signaturePath);
         if (!await photoFile.exists() || !await signatureFile.exists()) {
-          await OfflineDatabase.instance.recordDeliveryFailure(
-            localId,
-            'No se encontraron los archivos de evidencia en el dispositivo.',
-          );
+          const message = 'No se encontraron los archivos de evidencia en el dispositivo.';
+          await OfflineDatabase.instance.recordDeliveryFailure(localId, message);
+          rejected[localId] = message;
           continue;
         }
 
@@ -53,10 +69,9 @@ class OfflineSyncService {
         );
 
         if (!success) {
-          await OfflineDatabase.instance.recordDeliveryFailure(
-            localId,
-            'El servidor no confirmó la entrega. Se reintentará más tarde.',
-          );
+          const message = 'El servidor no confirmó la entrega. Se reintentará más tarde.';
+          await OfflineDatabase.instance.recordDeliveryFailure(localId, message);
+          pendingIds.add(localId);
           continue;
         }
 
@@ -66,13 +81,28 @@ class OfflineSyncService {
             .deleteFileIfExists(signaturePath);
         syncedIds.add(localId);
       } catch (error) {
+        final permanentHttpError =
+            error is DeliverySubmissionException &&
+            error.statusCode >= 400 &&
+            error.statusCode < 500 &&
+            error.statusCode != 408 &&
+            error.statusCode != 429;
         await OfflineDatabase.instance.recordDeliveryFailure(
           localId,
           error.toString(),
         );
+        if (permanentHttpError) {
+          rejected[localId] = error.toString();
+        } else {
+          pendingIds.add(localId);
+        }
       }
     }
 
-    return syncedIds;
+    return DeliverySyncResult(
+      syncedIds: syncedIds,
+      pendingIds: pendingIds,
+      rejected: rejected,
+    );
   }
 }
