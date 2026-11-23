@@ -37,7 +37,7 @@ T = a + b\log_2\left(1 + \frac{D}{W}\right)
 - **W:** ancho efectivo del objetivo en la dirección del movimiento.
 - **a y b:** constantes empíricas que dependen del usuario, dispositivo y contexto.
 
-El índice de dificultad es:
+La distancia \(D\) se mide desde la posición inicial del dedo hasta el centro del objetivo; \(W\) es el ancho efectivo del objetivo en la dirección del movimiento. El índice de dificultad es:
 
 \[
 ID = \log_2\left(1 + \frac{D}{W}\right)
@@ -79,7 +79,7 @@ T_1=0.20+0.10\log_2(1+300/40)\approx0.496\,s
 T_2=0.20+0.10\log_2(1+180/56)\approx0.407\,s
 \]
 
-En este ejemplo teórico, acercar y ampliar el objetivo reduce el tiempo estimado aproximadamente 18%. Los valores de (a), (b), (D) y (W) son ilustrativos; no representan mediciones realizadas con usuarios de Lulistrack.
+En este ejemplo teórico, acercar y ampliar el objetivo reduce el tiempo estimado aproximadamente 20%. Los valores de (a), (b), (D) y (W) son ilustrativos; no representan mediciones realizadas con usuarios de Lulistrack.
 
 ## 5. Criterios de evaluación
 
