@@ -9,7 +9,7 @@ class OfflineDatabase {
 
   static final OfflineDatabase instance = OfflineDatabase._();
   static const _databaseName = 'lulistrack_offline.db';
-  static const _databaseVersion = 2;
+  static const _databaseVersion = 3;
 
   Database? _database;
 
@@ -54,6 +54,7 @@ class OfflineDatabase {
             signature_path TEXT NOT NULL,
             timestamp TEXT NOT NULL,
             status TEXT NOT NULL DEFAULT 'pending',
+            sync_started_at TEXT,
             attempts INTEGER NOT NULL DEFAULT 0,
             last_error TEXT,
             created_at TEXT NOT NULL
@@ -63,6 +64,11 @@ class OfflineDatabase {
         await db.execute(
           'CREATE INDEX idx_pending_status ON pending_deliveries(status)',
         );
+        await db.execute("""
+          CREATE UNIQUE INDEX idx_one_active_delivery_per_order
+          ON pending_deliveries(order_id)
+          WHERE status != 'duplicate'
+        """);
         await db.execute(
           'CREATE INDEX idx_cached_group ON cached_orders(cache_group)',
         );
@@ -159,7 +165,7 @@ class OfflineDatabase {
         .toList();
   }
 
-  Future<void> enqueueDelivery({
+  Future<bool> enqueueDelivery({
     required String localId,
     required String orderId,
     required String photoPath,
@@ -167,20 +173,40 @@ class OfflineDatabase {
     required DateTime timestamp,
   }) async {
     final db = await database;
-    await db.insert(
-      'pending_deliveries',
-      {
+    return db.transaction((txn) async {
+      final existing = await txn.query(
+        'pending_deliveries',
+        columns: ['local_id'],
+        where: 'order_id = ? AND status != ?',
+        whereArgs: [orderId, 'duplicate'],
+        limit: 1,
+      );
+      if (existing.isNotEmpty) return false;
+
+      await txn.insert('pending_deliveries', {
         'local_id': localId,
         'order_id': orderId,
         'photo_path': photoPath,
         'signature_path': signaturePath,
         'timestamp': timestamp.toIso8601String(),
         'status': 'pending',
+        'sync_started_at': null,
         'attempts': 0,
         'created_at': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
+      });
+      return true;
+    });
+  }
+
+  Future<Map<String, Object?>?> getDeliveryByOrderId(String orderId) async {
+    final db = await database;
+    final rows = await db.query(
+      'pending_deliveries',
+      where: 'order_id = ? AND status != ?',
+      whereArgs: [orderId, 'duplicate'],
+      limit: 1,
     );
+    return rows.isEmpty ? null : rows.first;
   }
 
   Future<List<Map<String, Object?>>> getPendingDeliveries() async {
@@ -193,11 +219,43 @@ class OfflineDatabase {
     );
   }
 
+  Future<List<Map<String, Object?>>> claimPendingDeliveries() async {
+    final db = await database;
+    return db.transaction((txn) async {
+      final recoveryLimit = DateTime.now()
+          .subtract(const Duration(minutes: 5))
+          .toIso8601String();
+      await txn.update(
+        'pending_deliveries',
+        {'status': 'pending', 'sync_started_at': null},
+        where: "status = 'syncing' AND sync_started_at < ?",
+        whereArgs: [recoveryLimit],
+      );
+
+      final rows = await txn.query(
+        'pending_deliveries',
+        where: 'status = ?',
+        whereArgs: ['pending'],
+        orderBy: 'created_at ASC',
+      );
+      final now = DateTime.now().toIso8601String();
+      for (final row in rows) {
+        await txn.update(
+          'pending_deliveries',
+          {'status': 'syncing', 'sync_started_at': now},
+          where: 'local_id = ? AND status = ?',
+          whereArgs: [row['local_id'], 'pending'],
+        );
+      }
+      return rows;
+    });
+  }
+
   Future<void> markDeliverySynced(String localId) async {
     final db = await database;
     await db.update(
       'pending_deliveries',
-      {'status': 'synced', 'last_error': null},
+      {'status': 'synced', 'last_error': null, 'sync_started_at': null},
       where: 'local_id = ?',
       whereArgs: [localId],
     );
@@ -212,6 +270,7 @@ class OfflineDatabase {
       'pending_deliveries',
       {
         'status': 'needs_attention',
+        'sync_started_at': null,
         'last_error': error,
         'attempts': 1,
       },
@@ -228,7 +287,10 @@ class OfflineDatabase {
     await db.rawUpdate(
       '''
       UPDATE pending_deliveries
-      SET attempts = attempts + 1, last_error = ?
+      SET attempts = attempts + 1,
+          last_error = ?,
+          status = 'pending',
+          sync_started_at = NULL
       WHERE local_id = ?
       ''',
       [error, localId],
