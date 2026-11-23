@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../services/haptic_service.dart';
 
 import 'signature_screen.dart';
 
@@ -45,9 +46,11 @@ class _PhotoEvidenceScreenState extends State<PhotoEvidenceScreen> {
         setState(() {
           _capturedImage = File(photo.path);
         });
+        await HapticService.success();
       }
     } catch (e) {
       debugPrint('Error al abrir la cámara: $e');
+      await HapticService.error();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
