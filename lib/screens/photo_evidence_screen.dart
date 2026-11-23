@@ -10,10 +10,12 @@ import 'signature_screen.dart';
 
 class PhotoEvidenceScreen extends StatefulWidget {
   final String orderId;
+  final String clientName;
 
   const PhotoEvidenceScreen({
     super.key,
-    this.orderId = 'LT-543210',
+    required this.orderId,
+    this.clientName = '',
   });
 
   @override
@@ -73,6 +75,7 @@ class _PhotoEvidenceScreenState extends State<PhotoEvidenceScreen> {
         MaterialPageRoute(
           builder: (context) => SignatureScreen(
             orderId: widget.orderId,
+            clientName: widget.clientName,
             photoBase64: photoBase64,
           ),
         ),
@@ -150,7 +153,9 @@ class _PhotoEvidenceScreenState extends State<PhotoEvidenceScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${widget.orderId} · Maria Oliveira',
+                      widget.clientName.trim().isEmpty
+                          ? widget.orderId
+                          : widget.orderId + ' · ' + widget.clientName,
                       style: const TextStyle(
                         fontSize: 13,
                         color: textGray,
