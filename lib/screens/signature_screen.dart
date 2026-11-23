@@ -39,9 +39,18 @@ class _SignatureScreenState extends State<SignatureScreen> {
   static const Color textGray = Color(0xFF64748B);
   static const Color textLightGray = Color(0xFF94A3B8);
 
-  void _clearSignature() {
+  Future<void> _clearSignature() async {
+    if (_points.isEmpty) return;
+    final confirmed = await LulistrackDialog.confirm(
+      context,
+      title: '¿Borrar la firma?',
+      message: 'Se eliminarán los trazos actuales. El cliente tendrá que firmar nuevamente.',
+      confirmLabel: 'Borrar firma',
+      icon: Icons.delete_outline_rounded,
+    );
+    if (!confirmed || !mounted) return;
     setState(() => _points.clear());
-    HapticService.light();
+    await HapticService.light();
   }
 
   Future<void> _saveSignature() async {
