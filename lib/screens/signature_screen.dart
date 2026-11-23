@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 import '../services/haptic_service.dart';
+import '../widgets/lulistrack_dialog.dart';
+import '../widgets/fitts_touch_target.dart';
 import 'delivery_review_screen.dart';
 
 class SignatureScreen extends StatefulWidget {
@@ -45,15 +47,19 @@ class _SignatureScreenState extends State<SignatureScreen> {
   Future<void> _saveSignature() async {
     if (_points.isEmpty) {
       await HapticService.warning();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Primero debes capturar la firma del cliente')),
+      await LulistrackDialog.warning(
+        context,
+        title: 'Falta la firma',
+        message: 'Solicita al cliente que firme en el recuadro antes de continuar.',
       );
       return;
     }
     if (_nameController.text.trim().isEmpty) {
       await HapticService.warning();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ingresa el nombre del destinatario')),
+      await LulistrackDialog.warning(
+        context,
+        title: 'Falta el nombre',
+        message: 'Escribe el nombre de la persona que recibe el pedido para identificar la firma.',
       );
       return;
     }
@@ -213,9 +219,9 @@ class _SignatureScreenState extends State<SignatureScreen> {
                               TextButton(
                                 onPressed: _clearSignature,
                                 style: TextButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  minimumSize: const Size(FittsTouchTarget.minimum, FittsTouchTarget.minimum),
+                                  tapTargetSize: MaterialTapTargetSize.padded,
                                 ),
                                 child: const Text('Borrar', style: TextStyle(color: accentPink, fontSize: 13, fontWeight: FontWeight.bold)),
                               ),
@@ -283,7 +289,7 @@ class _SignatureScreenState extends State<SignatureScreen> {
               padding: const EdgeInsets.all(20),
               child: SizedBox(
                 width: double.infinity,
-                height: 52,
+                height: FittsTouchTarget.primary,
                 child: ElevatedButton.icon(
                   onPressed: _isLoading ? null : _saveSignature,
                   icon: _isLoading
