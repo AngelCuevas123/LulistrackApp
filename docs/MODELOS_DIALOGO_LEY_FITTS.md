@@ -79,7 +79,7 @@ T_1=0.20+0.10\log_2(1+300/40)\approx0.496\,s
 T_2=0.20+0.10\log_2(1+180/56)\approx0.407\,s
 \]
 
-En este ejemplo teórico, acercar y ampliar el objetivo reduce el tiempo estimado aproximadamente 20%. Los valores de (a), (b), (D) y (W) son ilustrativos; no representan mediciones realizadas con usuarios de Lulistrack.
+En este ejemplo teórico, acercar y ampliar el objetivo reduce el tiempo estimado aproximadamente 20%. Los valores de `a`, `b`, `D` y `W` son ilustrativos; no representan mediciones realizadas con usuarios de Lulistrack.
 
 ## 5. Criterios de evaluación
 
