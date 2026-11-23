@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/biometric_service.dart';
+import '../widgets/lulistrack_loading.dart';
 
 class SecurityPrivacyScreen extends StatefulWidget {
   const SecurityPrivacyScreen({super.key});
@@ -152,11 +153,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
                 style: TextStyle(fontSize: 12, color: textGray),
               ),
               trailing: _loading
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                  ? const LulistrackActionLoading(color: accentPink, size: 22)
                   : Switch(
                       value: _biometricEnabled,
                       activeColor: accentPink,
