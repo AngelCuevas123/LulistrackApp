@@ -13,12 +13,18 @@ import 'signature_screen.dart';
 
 class PhotoEvidenceScreen extends StatefulWidget {
   final String orderId;
+  final String trackingNumber;
   final String clientName;
+  final String address;
+  final String colony;
 
   const PhotoEvidenceScreen({
     super.key,
     required this.orderId,
+    this.trackingNumber = '',
     this.clientName = '',
+    this.address = '',
+    this.colony = '',
   });
 
   @override
@@ -89,7 +95,10 @@ class _PhotoEvidenceScreenState extends State<PhotoEvidenceScreen> {
         MaterialPageRoute(
           builder: (context) => SignatureScreen(
             orderId: widget.orderId,
+            trackingNumber: widget.trackingNumber,
             clientName: widget.clientName,
+            address: widget.address,
+            colony: widget.colony,
             photoBase64: photoBase64,
           ),
         ),
