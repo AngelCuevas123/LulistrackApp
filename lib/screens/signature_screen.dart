@@ -10,11 +10,13 @@ import 'delivery_review_screen.dart';
 
 class SignatureScreen extends StatefulWidget {
   final String orderId;
+  final String clientName;
   final String photoBase64;
 
   const SignatureScreen({
     super.key,
-    this.orderId = 'LT-543210',
+    required this.orderId,
+    this.clientName = '',
     required this.photoBase64,
   });
 
@@ -24,7 +26,7 @@ class SignatureScreen extends StatefulWidget {
 
 class _SignatureScreenState extends State<SignatureScreen> {
   final TextEditingController _nameController =
-      TextEditingController(text: 'Maria Oliveira');
+      TextEditingController();
 
   final List<Offset?> _points = [];
   final GlobalKey _signatureKey = GlobalKey();
@@ -91,6 +93,7 @@ class _SignatureScreenState extends State<SignatureScreen> {
         MaterialPageRoute(
           builder: (context) => DeliveryReviewScreen(
             orderId: widget.orderId,
+            clientName: widget.clientName,
             photoBase64: widget.photoBase64,
             signatureBase64: signatureBase64,
           ),
@@ -242,7 +245,9 @@ class _SignatureScreenState extends State<SignatureScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Maria Oliveira',
+                                widget.clientName.trim().isEmpty
+                                    ? 'Destinatario'
+                                    : widget.clientName,
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
@@ -251,7 +256,7 @@ class _SignatureScreenState extends State<SignatureScreen> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                '${widget.orderId} · 1 paquete · 2.4 kg',
+                                '${widget.orderId}',
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: textGray,
