@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 import '../widgets/lulistrack_loading.dart';
 import 'dart:ui' as ui;
@@ -6,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import '../services/haptic_service.dart';
 import 'delivery_review_screen.dart';
 
 class SignatureScreen extends StatefulWidget {
@@ -25,12 +25,9 @@ class SignatureScreen extends StatefulWidget {
 }
 
 class _SignatureScreenState extends State<SignatureScreen> {
-  final TextEditingController _nameController =
-      TextEditingController();
-
+  final TextEditingController _nameController = TextEditingController();
   final List<Offset?> _points = [];
   final GlobalKey _signatureKey = GlobalKey();
-
   bool _isLoading = false;
 
   static const Color primaryNavy = Color(0xFF1E3A8A);
@@ -41,42 +38,31 @@ class _SignatureScreenState extends State<SignatureScreen> {
   static const Color textLightGray = Color(0xFF94A3B8);
 
   void _clearSignature() {
-    setState(() {
-      _points.clear();
-    });
+    setState(() => _points.clear());
+    HapticService.light();
   }
 
   Future<void> _saveSignature() async {
     if (_points.isEmpty) {
+      await HapticService.warning();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Primero debes capturar la firma del cliente'),
-        ),
+        const SnackBar(content: Text('Primero debes capturar la firma del cliente')),
       );
       return;
     }
-
     if (_nameController.text.trim().isEmpty) {
+      await HapticService.warning();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ingresa el nombre del destinatario'),
-        ),
+        const SnackBar(content: Text('Ingresa el nombre del destinatario')),
       );
       return;
     }
 
     setState(() => _isLoading = true);
-
     try {
-      final boundary = _signatureKey.currentContext!
-          .findRenderObject() as RenderRepaintBoundary;
-
+      final boundary = _signatureKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
       final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-
-      final byteData = await image.toByteData(
-        format: ui.ImageByteFormat.png,
-      );
-
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       image.dispose();
 
       if (byteData == null) {
@@ -85,9 +71,9 @@ class _SignatureScreenState extends State<SignatureScreen> {
 
       final signatureBytes = byteData.buffer.asUint8List();
       final signatureBase64 = base64Encode(signatureBytes);
-
       if (!mounted) return;
 
+      await HapticService.success();
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -101,7 +87,7 @@ class _SignatureScreenState extends State<SignatureScreen> {
       );
     } catch (e) {
       debugPrint('Error al guardar la firma: $e');
-
+      await HapticService.error();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -111,9 +97,7 @@ class _SignatureScreenState extends State<SignatureScreen> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -131,20 +115,12 @@ class _SignatureScreenState extends State<SignatureScreen> {
         backgroundColor: bgLight,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: primaryNavy,
-            size: 20,
-          ),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: primaryNavy, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Firma Digital',
-          style: TextStyle(
-            color: primaryNavy,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
+          style: TextStyle(color: primaryNavy, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
       ),
@@ -153,38 +129,22 @@ class _SignatureScreenState extends State<SignatureScreen> {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
                       'Entregar al destinatario',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: primaryNavy,
-                      ),
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: primaryNavy),
                     ),
                     const SizedBox(height: 4),
                     const Text(
                       'Pide al cliente que firme a continuación',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: textGray,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: TextStyle(fontSize: 13, color: textGray, fontWeight: FontWeight.w500),
                     ),
                     const SizedBox(height: 16),
-
-                    // Indicador de pasos
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 16,
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
@@ -194,32 +154,14 @@ class _SignatureScreenState extends State<SignatureScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
                           _buildCompletedStepItem(title: 'Foto'),
-                          Container(
-                            height: 20,
-                            width: 1,
-                            color: cardBorder,
-                          ),
-                          _buildStepItem(
-                            stepNumber: '2',
-                            title: 'Firma',
-                            isActive: true,
-                          ),
-                          Container(
-                            height: 20,
-                            width: 1,
-                            color: cardBorder,
-                          ),
-                          _buildStepItem(
-                            stepNumber: '3',
-                            title: 'Revisión',
-                            isActive: false,
-                          ),
+                          Container(height: 20, width: 1, color: cardBorder),
+                          _buildStepItem(stepNumber: '2', title: 'Firma', isActive: true),
+                          Container(height: 20, width: 1, color: cardBorder),
+                          _buildStepItem(stepNumber: '3', title: 'Revisión', isActive: false),
                         ],
                       ),
                     ),
                     const SizedBox(height: 16),
-
-                    // Información del paquete
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
@@ -230,79 +172,42 @@ class _SignatureScreenState extends State<SignatureScreen> {
                         children: [
                           Container(
                             padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.inventory_2_outlined,
-                              color: primaryNavy,
-                              size: 22,
-                            ),
+                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                            child: const Icon(Icons.inventory_2_outlined, color: primaryNavy, size: 22),
                           ),
                           const SizedBox(width: 12),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                widget.clientName.trim().isEmpty
-                                    ? 'Destinatario'
-                                    : widget.clientName,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: primaryNavy,
-                                ),
+                              Text(
+                                widget.clientName.trim().isEmpty ? 'Destinatario' : widget.clientName,
+                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryNavy),
                               ),
                               const SizedBox(height: 2),
-                              Text(
-                                '${widget.orderId}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: textGray,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
+                              Text(widget.orderId, style: const TextStyle(fontSize: 12, color: textGray, fontWeight: FontWeight.w500)),
                             ],
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 16),
-
-                    // Lienzo de firma
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: accentPink.withOpacity(0.3),
-                          width: 1.5,
-                        ),
+                        border: Border.all(color: accentPink.withOpacity(0.3), width: 1.5),
                       ),
                       child: Column(
                         children: [
                           Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Row(
                                 children: [
-                                  Icon(
-                                    Icons.draw_outlined,
-                                    size: 16,
-                                    color: textGray,
-                                  ),
+                                  Icon(Icons.draw_outlined, size: 16, color: textGray),
                                   SizedBox(width: 6),
-                                  Text(
-                                    'Firmar con el dedo',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: textGray,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
+                                  Text('Firmar con el dedo', style: TextStyle(fontSize: 12, color: textGray, fontWeight: FontWeight.w500)),
                                 ],
                               ),
                               TextButton(
@@ -310,22 +215,13 @@ class _SignatureScreenState extends State<SignatureScreen> {
                                 style: TextButton.styleFrom(
                                   padding: EdgeInsets.zero,
                                   minimumSize: Size.zero,
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 ),
-                                child: const Text(
-                                  'Borrar',
-                                  style: TextStyle(
-                                    color: accentPink,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                child: const Text('Borrar', style: TextStyle(color: accentPink, fontSize: 13, fontWeight: FontWeight.bold)),
                               ),
                             ],
                           ),
                           const SizedBox(height: 10),
-
                           RepaintBoundary(
                             key: _signatureKey,
                             child: ClipRRect(
@@ -335,92 +231,47 @@ class _SignatureScreenState extends State<SignatureScreen> {
                                 width: double.infinity,
                                 color: const Color(0xFFF8FAFC),
                                 child: GestureDetector(
-                                  onPanUpdate: (details) {
-                                    setState(() {
-                                      _points.add(details.localPosition);
-                                    });
-                                  },
-                                  onPanEnd: (details) {
-                                    setState(() {
-                                      _points.add(null);
-                                    });
-                                  },
-                                  child: CustomPaint(
-                                    painter: SignaturePainter(_points),
-                                    size: Size.infinite,
-                                  ),
+                                  onPanUpdate: (details) => setState(() => _points.add(details.localPosition)),
+                                  onPanEnd: (details) => setState(() => _points.add(null)),
+                                  child: CustomPaint(painter: SignaturePainter(_points), size: Size.infinite),
                                 ),
                               ),
                             ),
                           ),
-
                           const SizedBox(height: 8),
-                          const Divider(
-                            height: 1,
-                            color: Color(0xFFE2E8F0),
-                          ),
+                          const Divider(height: 1, color: Color(0xFFE2E8F0)),
                           const SizedBox(height: 8),
-
                           Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                _nameController.text.isNotEmpty
-                                    ? _nameController.text
-                                    : 'Firma del cliente',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: textGray,
-                                ),
+                                _nameController.text.isNotEmpty ? _nameController.text : 'Firma del cliente',
+                                style: const TextStyle(fontSize: 12, color: textGray),
                               ),
-                              const Icon(
-                                Icons.edit_outlined,
-                                size: 16,
-                                color: textLightGray,
-                              ),
+                              const Icon(Icons.edit_outlined, size: 16, color: textLightGray),
                             ],
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 16),
-
-                    // Nombre del destinatario
-                    const Text(
-                      'Nombre del Destinatario',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: textGray,
-                      ),
-                    ),
+                    const Text('Nombre del Destinatario', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textGray)),
                     const SizedBox(height: 6),
                     TextField(
                       controller: _nameController,
                       onChanged: (value) => setState(() {}),
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: primaryNavy,
-                      ),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryNavy),
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: const BorderSide(color: cardBorder),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(
-                            color: primaryNavy,
-                            width: 1.5,
-                          ),
+                          borderSide: const BorderSide(color: primaryNavy, width: 1.5),
                         ),
                       ),
                     ),
@@ -428,8 +279,6 @@ class _SignatureScreenState extends State<SignatureScreen> {
                 ),
               ),
             ),
-
-            // Botón guardar firma
             Padding(
               padding: const EdgeInsets.all(20),
               child: SizedBox(
@@ -439,26 +288,16 @@ class _SignatureScreenState extends State<SignatureScreen> {
                   onPressed: _isLoading ? null : _saveSignature,
                   icon: _isLoading
                       ? const LulistrackActionLoading(color: Colors.white, size: 19)
-                      : const Icon(
-                          Icons.check_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
+                      : const Icon(Icons.check_rounded, color: Colors.white, size: 20),
                   label: Text(
                     _isLoading ? 'Guardando...' : 'Guardar Firma',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: accentPink,
                     elevation: 3,
                     shadowColor: accentPink.withOpacity(0.4),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                   ),
                 ),
               ),
@@ -475,35 +314,17 @@ class _SignatureScreenState extends State<SignatureScreen> {
         Container(
           width: 22,
           height: 22,
-          decoration: const BoxDecoration(
-            color: primaryNavy,
-            shape: BoxShape.circle,
-          ),
+          decoration: const BoxDecoration(color: primaryNavy, shape: BoxShape.circle),
           alignment: Alignment.center,
-          child: const Icon(
-            Icons.check,
-            size: 14,
-            color: Colors.white,
-          ),
+          child: const Icon(Icons.check, size: 14, color: Colors.white),
         ),
         const SizedBox(width: 6),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: primaryNavy,
-          ),
-        ),
+        Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: primaryNavy)),
       ],
     );
   }
 
-  Widget _buildStepItem({
-    required String stepNumber,
-    required String title,
-    required bool isActive,
-  }) {
+  Widget _buildStepItem({required String stepNumber, required String title, required bool isActive}) {
     return Row(
       children: [
         Container(
@@ -519,9 +340,7 @@ class _SignatureScreenState extends State<SignatureScreen> {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: isActive
-                  ? const Color(0xFF854D0E)
-                  : textGray,
+              color: isActive ? const Color(0xFF854D0E) : textGray,
             ),
           ),
         ),
@@ -530,8 +349,7 @@ class _SignatureScreenState extends State<SignatureScreen> {
           title,
           style: TextStyle(
             fontSize: 13,
-            fontWeight:
-                isActive ? FontWeight.bold : FontWeight.w500,
+            fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
             color: isActive ? primaryNavy : textGray,
           ),
         ),
@@ -542,7 +360,6 @@ class _SignatureScreenState extends State<SignatureScreen> {
 
 class SignaturePainter extends CustomPainter {
   final List<Offset?> points;
-
   SignaturePainter(this.points);
 
   @override
@@ -552,14 +369,9 @@ class SignaturePainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..isAntiAlias = true
       ..strokeWidth = 3.5;
-
     for (int i = 0; i < points.length - 1; i++) {
       if (points[i] != null && points[i + 1] != null) {
-        canvas.drawLine(
-          points[i]!,
-          points[i + 1]!,
-          paint,
-        );
+        canvas.drawLine(points[i]!, points[i + 1]!, paint);
       }
     }
   }
@@ -567,4 +379,3 @@ class SignaturePainter extends CustomPainter {
   @override
   bool shouldRepaint(SignaturePainter oldDelegate) => true;
 }
-
