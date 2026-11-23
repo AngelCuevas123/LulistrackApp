@@ -42,9 +42,13 @@ class OfflineSyncService {
 
   Future<DeliverySyncResult> _syncPendingDeliveries() async {
     if (ApiService.authToken == null || ApiService.authToken!.isEmpty) {
-      return const DeliverySyncResult(
+      final pending = await OfflineDatabase.instance.getPendingDeliveries();
+      return DeliverySyncResult(
         syncedIds: <String>{},
-        pendingIds: <String>{},
+        pendingIds: {
+          for (final item in pending)
+            if (item['local_id'] != null) item['local_id'].toString(),
+        },
         rejected: <String, String>{},
       );
     }
