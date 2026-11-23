@@ -54,9 +54,10 @@ class _LulistrackSplashScreenState extends State<LulistrackSplashScreen>
   }
 
   double _phase(double begin, double end, {Curve curve = Curves.easeOutCubic}) {
-    return curve.transform(
-      ((_intro.value - begin) / (end - begin)).clamp(0.0, 1.0),
-    );
+    final value = ((_intro.value - begin) / (end - begin))
+        .clamp(0.0, 1.0)
+        .toDouble();
+    return curve.transform(value);
   }
 
   @override
@@ -216,7 +217,7 @@ class _LulistrackSplashScreenState extends State<LulistrackSplashScreen>
                 child: Transform.translate(
                   offset: Offset(0, 14 * (1 - logoProgress)),
                   child: Opacity(
-                    opacity: logoProgress.clamp(0.0, 1.0),
+                    opacity: logoProgress.clamp(0.0, 1.0).toDouble(),
                     child: Transform.scale(
                       scale: 0.72 + (0.28 * logoProgress),
                       child: Column(
@@ -295,7 +296,7 @@ class _LulistrackSplashScreenState extends State<LulistrackSplashScreen>
                 right: 28,
                 bottom: MediaQuery.paddingOf(context).bottom + 42,
                 child: Opacity(
-                  opacity: (1 - logoProgress * 0.65).clamp(0.0, 1.0),
+                  opacity: (1 - logoProgress * 0.65).clamp(0.0, 1.0).toDouble(),
                   child: Column(
                     children: [
                       Row(
