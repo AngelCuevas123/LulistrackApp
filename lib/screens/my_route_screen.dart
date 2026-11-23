@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/lulistrack_loading.dart';
 import '../models/order_model.dart';
 import '../services/api_service.dart';
 import 'route_list_screen.dart';
@@ -191,11 +192,10 @@ class _MyRouteScreenState extends State<MyRouteScreen> {
                         const SizedBox(height: 12),
 
                         isLoading
-                            ? const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.all(40.0),
-                                  child: CircularProgressIndicator(),
-                                ),
+                            ? const LulistrackLoading(
+                                title: 'Trazando tu ruta',
+                                subtitle: 'Consultando tus entregas asignadas.',
+                                icon: Icons.route_rounded,
                               )
                             : nextOrder == null
                                 ? Container(
