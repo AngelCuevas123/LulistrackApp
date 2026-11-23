@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'main_navigation.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
+import '../services/biometric_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -32,6 +33,79 @@ class _LoginScreenState extends State<LoginScreen> {
     _userController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _offerBiometricsAfterLogin() async {
+    final biometric = BiometricService.instance;
+
+    if (await biometric.wasPrompted()) return;
+    await biometric.markPrompted();
+
+    if (!await biometric.isAvailable() || !mounted) return;
+
+    final enable = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+        ),
+        icon: const Icon(
+          Icons.fingerprint_rounded,
+          color: primaryNavy,
+          size: 42,
+        ),
+        title: const Text(
+          'Activa el acceso biométrico',
+          textAlign: TextAlign.center,
+        ),
+        content: const Text(
+          'La próxima vez podrás desbloquear Lulistrack con la huella '
+          'o el reconocimiento facial de este dispositivo. '
+          'Tu contraseña no se guardará.',
+          textAlign: TextAlign.center,
+        ),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Ahora no'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: accentPink,
+            ),
+            child: const Text('Activar'),
+          ),
+        ],
+      ),
+    );
+
+    if (enable != true || !mounted) return;
+
+    final authenticated = await biometric.authenticate(
+      reason: 'Confirma tu identidad para activar el acceso biométrico.',
+    );
+
+    if (authenticated) {
+      await biometric.setEnabled(true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Acceso biométrico activado correctamente.'),
+          ),
+        );
+      }
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No se pudo activar la biometría. Puedes intentarlo desde Seguridad y Privacidad.',
+          ),
+        ),
+      );
+    }
   }
 
   // Valida las credenciales registradas previamente desde el Dashboard.
@@ -80,6 +154,8 @@ class _LoginScreenState extends State<LoginScreen> {
       } catch (error) {
         debugPrint('No se pudo registrar FCM: $error');
       }
+
+      await _offerBiometricsAfterLogin();
 
       debugPrint('Inicio de sesión correcto.');
       debugPrint('Token disponible: ${ApiService.authToken != null}');
