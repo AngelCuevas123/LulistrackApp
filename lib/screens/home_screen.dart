@@ -1,7 +1,7 @@
-
 import 'package:flutter/material.dart';
 import '../models/order_model.dart';
 import '../services/api_service.dart';
+import '../services/haptic_service.dart';
 import 'order_detail_screen.dart';
 import '../widgets/lulistrack_loading.dart';
 
@@ -13,7 +13,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Paleta de colores oficial
   static const Color primaryNavy = Color(0xFF1E3A8A);
   static const Color accentPink = Color(0xFFC23B75);
   static const Color statusYellow = Color(0xFFFEF08A);
@@ -23,10 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   static const Color textGray = Color(0xFF64748B);
 
   late Future<List<List<OrderModel>>> _futureOrders;
-
-  final TextEditingController _searchController =
-      TextEditingController();
-
+  final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
   @override
@@ -35,7 +31,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _futureOrders = _loadOrders();
   }
 
-  // Cargar mis pedidos y los pedidos disponibles
   Future<List<List<OrderModel>>> _loadOrders() {
     return Future.wait<List<OrderModel>>([
       ApiService.getActiveOrders(),
@@ -43,12 +38,10 @@ class _HomeScreenState extends State<HomeScreen> {
     ]);
   }
 
-  // Actualizar ambas listas
   Future<void> _refreshOrders() async {
     setState(() {
       _futureOrders = _loadOrders();
     });
-
     try {
       await _futureOrders;
     } catch (_) {
@@ -62,7 +55,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  // Traducir los estados del backend
   String _getStatusLabel(String status) {
     switch (status.toLowerCase()) {
       case 'pendiente':
@@ -79,14 +71,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Filtrar pedidos por cliente, direccion o seguimiento
   List<OrderModel> _filterOrders(List<OrderModel> orders) {
-    if (_searchQuery.trim().isEmpty) {
-      return orders;
-    }
-
+    if (_searchQuery.trim().isEmpty) return orders;
     final query = _searchQuery.toLowerCase().trim();
-
     return orders.where((order) {
       return order.clientName.toLowerCase().contains(query) ||
           order.trackingNumber.toLowerCase().contains(query) ||
@@ -95,38 +82,32 @@ class _HomeScreenState extends State<HomeScreen> {
     }).toList();
   }
 
-  // Tomar un pedido disponible
   Future<void> _claimOrder(OrderModel order) async {
     try {
       await ApiService.claimOrder(order.id);
+      await HapticService.success();
 
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('¡Pedido asignado correctamente!'),
           backgroundColor: Colors.green,
         ),
       );
-
       await _refreshOrders();
     } catch (e) {
+      await HapticService.error();
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            e.toString().replaceFirst('Exception: ', ''),
-          ),
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
           backgroundColor: Colors.red,
         ),
       );
-
       await _refreshOrders();
     }
   }
 
-  // Abrir detalle del pedido
   Future<void> _openOrderDetail(OrderModel order) async {
     final Map<String, dynamic> orderMap = {
       'id': order.id,
@@ -142,15 +123,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) =>
-            OrderDetailScreen(orderData: orderMap),
-      ),
+      MaterialPageRoute(builder: (context) => OrderDetailScreen(orderData: orderMap)),
     );
-
-    if (mounted) {
-      await _refreshOrders();
-    }
+    if (mounted) await _refreshOrders();
   }
 
   @override
@@ -163,7 +138,6 @@ class _HomeScreenState extends State<HomeScreen> {
           color: accentPink,
           child: Column(
             children: [
-              // Cabecera superior azul con perfil y buscador
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                 decoration: const BoxDecoration(
@@ -176,18 +150,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   children: [
                     Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Row(
                           children: [
                             CircleAvatar(
                               radius: 24,
-                              backgroundColor:
-                                  Colors.white.withOpacity(0.2),
+                              backgroundColor: Colors.white.withOpacity(0.2),
                               child: Text(
                                 ApiService.currentDriver?.initials ?? 'R',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
@@ -196,10 +168,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(width: 12),
                             Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
+                                const Text(
                                   'Hola, Conductor',
                                   style: TextStyle(
                                     color: Colors.white,
@@ -207,13 +178,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                SizedBox(height: 2),
+                                const SizedBox(height: 2),
                                 Text(
                                   ApiService.currentDriver?.name ?? 'Repartidor',
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 13,
-                                  ),
+                                  style: const TextStyle(color: Colors.white70, fontSize: 13),
                                 ),
                               ],
                             ),
@@ -225,18 +193,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             shape: BoxShape.circle,
                           ),
                           child: IconButton(
-                            icon: const Icon(
-                              Icons.notifications_none_rounded,
-                              color: Colors.white,
-                            ),
+                            icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
                             onPressed: () {},
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 20),
-
-                    // Buscador funcional
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -251,48 +214,30 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       child: TextField(
                         controller: _searchController,
-                        onChanged: (value) {
-                          setState(() {
-                            _searchQuery = value;
-                          });
-                        },
+                        onChanged: (value) => setState(() => _searchQuery = value),
                         decoration: const InputDecoration(
-                          hintText:
-                              'Buscar ID de paquete o cliente',
-                          hintStyle: TextStyle(
-                            color: textGray,
-                            fontSize: 14,
-                          ),
-                          prefixIcon: Icon(
-                            Icons.search,
-                            color: textGray,
-                          ),
+                          hintText: 'Buscar ID de paquete o cliente',
+                          hintStyle: TextStyle(color: textGray, fontSize: 14),
+                          prefixIcon: Icon(Icons.search, color: textGray),
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(
-                            vertical: 14,
-                            horizontal: 16,
-                          ),
+                          contentPadding: EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-
-              // Listas conectadas al backend
               Expanded(
                 child: FutureBuilder<List<List<OrderModel>>>(
                   future: _futureOrders,
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState ==
-                        ConnectionState.waiting) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
                       return const LulistrackLoading(
                         title: 'Cargando tus entregas',
                         subtitle: 'Estamos organizando pedidos y rutas disponibles.',
                         icon: Icons.local_shipping_rounded,
                       );
                     }
-
                     if (snapshot.hasError) {
                       return ListView(
                         children: [
@@ -302,24 +247,15 @@ class _HomeScreenState extends State<HomeScreen> {
                               padding: const EdgeInsets.all(20),
                               child: Column(
                                 children: [
-                                  const Icon(
-                                    Icons.cloud_off_outlined,
-                                    size: 45,
-                                    color: textGray,
-                                  ),
+                                  const Icon(Icons.cloud_off_outlined, size: 45, color: textGray),
                                   const SizedBox(height: 12),
                                   Text(
                                     'Error al cargar pedidos:\n${snapshot.error}',
                                     textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      color: Colors.red,
-                                    ),
+                                    style: const TextStyle(color: Colors.red),
                                   ),
                                   const SizedBox(height: 16),
-                                  ElevatedButton(
-                                    onPressed: _refreshOrders,
-                                    child: const Text('Reintentar'),
-                                  ),
+                                  ElevatedButton(onPressed: _refreshOrders, child: const Text('Reintentar')),
                                 ],
                               ),
                             ),
@@ -329,72 +265,43 @@ class _HomeScreenState extends State<HomeScreen> {
                     }
 
                     final orders = snapshot.data?[0] ?? [];
-                    final availableOrders =
-                        snapshot.data?[1] ?? [];
-
-                    final filteredOrders =
-                        _filterOrders(orders);
-
-                    final filteredAvailable =
-                        _filterOrders(availableOrders);
+                    final availableOrders = snapshot.data?[1] ?? [];
+                    final filteredOrders = _filterOrders(orders);
+                    final filteredAvailable = _filterOrders(availableOrders);
 
                     return ListView(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                       children: [
-                        // SECCION MIS ENTREGAS
                         Row(
-                          mainAxisAlignment:
-                              MainAxisAlignment.spaceBetween,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text(
                               'Tus entregas',
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: primaryNavy,
-                              ),
+                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: primaryNavy),
                             ),
                             Text(
                               '${orders.length} ACTIVAS',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: textGray,
-                              ),
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textGray),
                             ),
                           ],
                         ),
                         const SizedBox(height: 12),
-
                         Row(
                           children: [
                             Container(
-                              padding:
-                                  const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
                                 color: primaryNavy,
-                                borderRadius:
-                                    BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
                                 'Activas ${orders.length}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
-
                         if (filteredOrders.isEmpty)
                           const Padding(
                             padding: EdgeInsets.all(25),
@@ -409,43 +316,25 @@ class _HomeScreenState extends State<HomeScreen> {
                         else
                           ...filteredOrders.map(
                             (order) => Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: 12,
-                              ),
-                              child: _buildDeliveryCard(
-                                order: order,
-                                isAvailable: false,
-                              ),
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildDeliveryCard(order: order, isAvailable: false),
                             ),
                           ),
-
                         const SizedBox(height: 24),
-
-                        // SECCION PEDIDOS DISPONIBLES
                         Row(
-                          mainAxisAlignment:
-                              MainAxisAlignment.spaceBetween,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text(
                               'Pedidos disponibles',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: primaryNavy,
-                              ),
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: primaryNavy),
                             ),
                             Text(
                               '${availableOrders.length} NUEVOS',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: textGray,
-                              ),
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textGray),
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
-
                         if (filteredAvailable.isEmpty)
                           const Padding(
                             padding: EdgeInsets.all(25),
@@ -460,16 +349,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         else
                           ...filteredAvailable.map(
                             (order) => Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: 12,
-                              ),
-                              child: _buildDeliveryCard(
-                                order: order,
-                                isAvailable: true,
-                              ),
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildDeliveryCard(order: order, isAvailable: true),
                             ),
                           ),
-
                         const SizedBox(height: 100),
                       ],
                     );
@@ -480,38 +363,28 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-
       floatingActionButton: Container(
         margin: const EdgeInsets.only(bottom: 20),
         child: FloatingActionButton.extended(
           onPressed: _refreshOrders,
           backgroundColor: accentPink,
           elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
           label: const Text(
             'Actualizar Pedidos',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
           ),
         ),
       ),
-      floatingActionButtonLocation:
-          FloatingActionButtonLocation.endFloat,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
-  // Tarjeta de pedido
   Widget _buildDeliveryCard({
     required OrderModel order,
     required bool isAvailable,
   }) {
     final statusLabel = _getStatusLabel(order.status);
-
     return InkWell(
       onTap: () => _openOrderDetail(order),
       borderRadius: BorderRadius.circular(20),
@@ -520,10 +393,7 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: cardBorder,
-            width: 1,
-          ),
+          border: Border.all(color: cardBorder, width: 1),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.02),
@@ -536,101 +406,57 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        order.clientName.isEmpty
-                            ? 'Cliente no disponible'
-                            : order.clientName,
+                        order.clientName.isEmpty ? 'Cliente no disponible' : order.clientName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: primaryNavy,
-                        ),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryNavy),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         order.trackingNumber,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: textGray,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: const TextStyle(fontSize: 12, color: textGray, fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusYellow,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(color: statusYellow, borderRadius: BorderRadius.circular(12)),
                   child: Text(
                     statusLabel,
-                    style: const TextStyle(
-                      color: statusYellowText,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(color: statusYellowText, fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
             ),
-
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
-              child: Divider(
-                height: 1,
-                color: Color(0xFFF1F5F9),
-              ),
+              child: Divider(height: 1, color: Color(0xFFF1F5F9)),
             ),
-
             Row(
               children: [
-                const Icon(
-                  Icons.location_on_outlined,
-                  size: 18,
-                  color: textGray,
-                ),
+                const Icon(Icons.location_on_outlined, size: 18, color: textGray),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        order.address.isEmpty
-                            ? 'Dirección no disponible'
-                            : order.address,
+                        order.address.isEmpty ? 'Dirección no disponible' : order.address,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: primaryNavy,
-                        ),
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: primaryNavy),
                       ),
                       if (order.colony.isNotEmpty)
-                        Text(
-                          order.colony,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: textGray,
-                          ),
-                        ),
+                        Text(order.colony, style: const TextStyle(fontSize: 11, color: textGray)),
                     ],
                   ),
                 ),
@@ -638,43 +464,26 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(width: 8),
                   Text(
                     order.estimatedTime,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: primaryNavy,
-                    ),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: primaryNavy),
                   ),
                 ],
-                const Icon(
-                  Icons.chevron_right,
-                  size: 18,
-                  color: textGray,
-                ),
+                const Icon(Icons.chevron_right, size: 18, color: textGray),
               ],
             ),
-
-            // Boton para tomar pedido disponible
             if (isAvailable) ...[
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () => _claimOrder(order),
-                  icon: const Icon(
-                    Icons.add_task_rounded,
-                    size: 18,
-                  ),
+                  icon: const Icon(Icons.add_task_rounded, size: 18),
                   label: const Text('Tomar pedido'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: accentPink,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                 ),
               ),
@@ -685,4 +494,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
