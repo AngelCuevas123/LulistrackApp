@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'fitts_touch_target.dart';
 
 /// Dialogos consistentes para confirmar acciones y comunicar estados al repartidor.
 class LulistrackDialog {
@@ -31,7 +32,7 @@ class LulistrackDialog {
         actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         actions: [
           SizedBox(
-            height: 48,
+            height: FittsTouchTarget.minimum,
             child: OutlinedButton(
               onPressed: () => Navigator.pop(dialogContext, false),
               style: OutlinedButton.styleFrom(
