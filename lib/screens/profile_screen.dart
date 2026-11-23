@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
+import '../services/biometric_service.dart';
 
 import 'login_screen.dart';
 import 'personal_data_screen.dart';
@@ -144,6 +145,7 @@ class ProfileScreen extends StatelessWidget {
 
                         // Después cerrar la sesión de Supabase.
                         await Supabase.instance.client.auth.signOut();
+                        await BiometricService.instance.clearForSignOut();
 
                         ApiService.authToken = null;
                         ApiService.currentDriver = null;
