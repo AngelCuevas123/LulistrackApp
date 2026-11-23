@@ -67,15 +67,17 @@ class _SessionGateScreenState extends State<SessionGateScreen> {
 
   void _goToLogin() {
     if (!mounted) return;
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
     );
   }
 
   void _goToApp() {
     if (!mounted) return;
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+      (route) => false,
     );
   }
 
