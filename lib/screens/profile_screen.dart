@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -9,13 +8,13 @@ import '../services/biometric_service.dart';
 import 'login_screen.dart';
 import 'personal_data_screen.dart';
 import 'notifications_settings_screen.dart';
+import 'immersive_settings_screen.dart';
 import 'security_privacy_screen.dart';
 import 'help_support_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
-  // Paleta de colores oficial
   static const Color primaryNavy = Color(0xFF1E3A8A);
   static const Color accentPink = Color(0xFFC23B75);
   static const Color bgLight = Color(0xFFF8FAFC);
@@ -29,7 +28,6 @@ class ProfileScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // Cabecera superior de Perfil
             Container(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
               decoration: const BoxDecoration(
@@ -68,24 +66,16 @@ class ProfileScreen extends StatelessWidget {
                       const SizedBox(height: 4),
                       const Text(
                         'Conductor Autorizado · Lulistrack',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white70,
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.white70),
                       ),
                     ],
                   ),
                 ],
               ),
             ),
-
-            // Opciones de configuración y perfil
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 20,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                 children: [
                   const Text(
                     'Configuración de cuenta',
@@ -96,7 +86,6 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-
                   _buildProfileOption(
                     context,
                     icon: Icons.person_outline_rounded,
@@ -105,7 +94,6 @@ class ProfileScreen extends StatelessWidget {
                     destination: const PersonalDataScreen(),
                   ),
                   const SizedBox(height: 10),
-
                   _buildProfileOption(
                     context,
                     icon: Icons.notifications_outlined,
@@ -114,7 +102,14 @@ class ProfileScreen extends StatelessWidget {
                     destination: const NotificationsSettingsScreen(),
                   ),
                   const SizedBox(height: 10),
-
+                  _buildProfileOption(
+                    context,
+                    icon: Icons.graphic_eq_rounded,
+                    title: 'Experiencia inmersiva',
+                    subtitle: 'Vibraciones, asistente de voz y modo manos libres',
+                    destination: const ImmersiveSettingsScreen(),
+                  ),
+                  const SizedBox(height: 10),
                   _buildProfileOption(
                     context,
                     icon: Icons.security_rounded,
@@ -123,7 +118,6 @@ class ProfileScreen extends StatelessWidget {
                     destination: const SecurityPrivacyScreen(),
                   ),
                   const SizedBox(height: 10),
-
                   _buildProfileOption(
                     context,
                     icon: Icons.help_outline_rounded,
@@ -132,38 +126,25 @@ class ProfileScreen extends StatelessWidget {
                     destination: const HelpSupportScreen(),
                   ),
                   const SizedBox(height: 24),
-
-                  // Botón de Cerrar Sesión
                   SizedBox(
                     width: double.infinity,
                     height: 50,
                     child: OutlinedButton(
                       onPressed: () async {
-                        // Primero desactivar el FID en nuestro backend.
-                        await NotificationService
-                            .unregisterCurrentInstallation();
-
-                        // Después cerrar la sesión de Supabase.
+                        await NotificationService.unregisterCurrentInstallation();
                         await Supabase.instance.client.auth.signOut();
                         await BiometricService.instance.clearForSignOut();
-
                         ApiService.authToken = null;
                         ApiService.currentDriver = null;
-
                         if (!context.mounted) return;
-
                         Navigator.pushAndRemoveUntil(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => const LoginScreen(),
-                          ),
-                              (route) => false,
+                          MaterialPageRoute(builder: (context) => const LoginScreen()),
+                          (route) => false,
                         );
                       },
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(
-                          color: Color(0xFFEF4444),
-                        ),
+                        side: const BorderSide(color: Color(0xFFEF4444)),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -189,12 +170,12 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildProfileOption(
-      BuildContext context, {
-        required IconData icon,
-        required String title,
-        required String subtitle,
-        required Widget destination,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Widget destination,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
       decoration: BoxDecoration(
@@ -213,12 +194,10 @@ class ProfileScreen extends StatelessWidget {
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => destination),
-            );
-          },
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => destination),
+          ),
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(14),
@@ -248,19 +227,12 @@ class ProfileScreen extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         subtitle,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: textGray,
-                        ),
+                        style: const TextStyle(fontSize: 12, color: textGray),
                       ),
                     ],
                   ),
                 ),
-                const Icon(
-                  Icons.chevron_right,
-                  color: textGray,
-                  size: 20,
-                ),
+                const Icon(Icons.chevron_right, color: textGray, size: 20),
               ],
             ),
           ),
