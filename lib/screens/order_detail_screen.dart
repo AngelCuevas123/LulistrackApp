@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'photo_evidence_screen.dart';
+import '../widgets/fitts_touch_target.dart';
 
 class OrderDetailScreen extends StatelessWidget {
   final Map<String, dynamic> orderData; // Recibe el objeto completo del pedido
@@ -215,7 +216,7 @@ class OrderDetailScreen extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: SizedBox(
                 width: double.infinity,
-                height: 52,
+                height: FittsTouchTarget.primary,
                 child: ElevatedButton.icon(
                   onPressed: orderId.isEmpty
                       ? null
