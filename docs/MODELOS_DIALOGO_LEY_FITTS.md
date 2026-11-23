@@ -66,17 +66,17 @@ Se centralizan los criterios en `lib/widgets/fitts_touch_target.dart`:
 
 ## 4. Ejemplo matemático ilustrativo
 
-Supóngase una interacción táctil hipotética con constantes de ejemplo (a=0.20\,s) y (b=0.10\,s).
+Supóngase una interacción táctil hipotética con constantes de ejemplo: `a = 0.20 s` y `b = 0.10 s`.
 
-- Objetivo pequeño: (D=300\,px), (W=40\,px).
-- Objetivo amplio: (D=180\,px), (W=56\,px).
+- Objetivo pequeño: `D = 300 px`, `W = 40 px`.
+- Objetivo amplio: `D = 180 px`, `W = 56 px`.
 
 \[
-T_1=0.20+0.10\log_2(1+300/40)\approx0.496\,s
+T_1=0.20+0.10\log_2(1+300/40)\approx0.509\,s
 \]
 
 \[
-T_2=0.20+0.10\log_2(1+180/56)\approx0.407\,s
+T_2=0.20+0.10\log_2(1+180/56)\approx0.408\,s
 \]
 
 En este ejemplo teórico, acercar y ampliar el objetivo reduce el tiempo estimado aproximadamente 20%. Los valores de `a`, `b`, `D` y `W` son ilustrativos; no representan mediciones realizadas con usuarios de Lulistrack.
