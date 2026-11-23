@@ -49,6 +49,14 @@ class _PhotoEvidenceScreenState extends State<PhotoEvidenceScreen> {
           _capturedImage = File(photo.path);
         });
         await HapticService.success();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Fotografía capturada correctamente. Ya puedes continuar.'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Error al abrir la cámara: $e');
