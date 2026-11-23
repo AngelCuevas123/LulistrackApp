@@ -6,6 +6,8 @@ import '../services/offline_database.dart';
 import '../services/offline_evidence_storage.dart';
 import '../services/offline_sync_service.dart';
 import '../services/haptic_service.dart';
+import '../widgets/lulistrack_dialog.dart';
+import '../widgets/fitts_touch_target.dart';
 import 'delivery_receipt_screen.dart';
 
 class DeliveryReviewScreen extends StatefulWidget {
@@ -42,6 +44,15 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
   // Primero guardo la evidencia en el dispositivo; después intento sincronizarla.
   Future<void> _confirmAndSubmitDelivery() async {
     if (_isLoading) return;
+
+    final confirmed = await LulistrackDialog.confirm(
+      context,
+      title: '¿Confirmar entrega?',
+      message: 'La fotografía y la firma se guardarán como evidencia. Después intentaremos sincronizar el comprobante.',
+      confirmLabel: 'Confirmar entrega',
+      icon: Icons.local_shipping_rounded,
+    );
+    if (!confirmed || !mounted) return;
 
     setState(() => _isLoading = true);
 
@@ -163,13 +174,11 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
       debugPrint('Error al guardar la entrega localmente: $error');
       await HapticService.error();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'No se pudo guardar la evidencia en este dispositivo. Inténtalo de nuevo.',
-            ),
-            backgroundColor: Colors.red,
-          ),
+        await LulistrackDialog.error(
+          context,
+          title: 'No se pudo guardar',
+          message: 'La evidencia no pudo guardarse en este dispositivo. Comprueba el espacio disponible e inténtalo nuevamente.',
+          buttonLabel: 'Entendido',
         );
       }
     } finally {
@@ -456,7 +465,7 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
               padding: const EdgeInsets.all(20),
               child: SizedBox(
                 width: double.infinity,
-                height: 52,
+                height: FittsTouchTarget.primary,
                 child: ElevatedButton.icon(
                   onPressed: _isLoading
                       ? null
