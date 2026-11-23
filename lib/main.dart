@@ -6,6 +6,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'firebase_options.dart';
 import 'screens/session_gate_screen.dart';
+import 'services/api_service.dart';
 import 'screens/lulistrack_splash_screen.dart';
 
 @pragma('vm:entry-point')
@@ -36,6 +37,16 @@ Future<void> main() async {
   }
 
   await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+
+  // Mantener actualizado el token que utiliza ApiService cuando Supabase
+  // renueva la sesión automáticamente.
+  Supabase.instance.client.auth.onAuthStateChange.listen((authState) {
+    ApiService.authToken = authState.session?.accessToken;
+    if (authState.session == null) {
+      ApiService.currentDriver = null;
+    }
+  });
+
   runApp(const LulistrackApp());
 }
 
