@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/lulistrack_loading.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/order_model.dart';
@@ -116,10 +117,10 @@ class _ListScreenState extends State<ListScreen> {
           future: _futureOrders,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(
-                  color: accentPink,
-                ),
+              return const LulistrackLoading(
+                title: 'Actualizando entregas',
+                subtitle: 'Buscando pedidos disponibles en tu zona.',
+                icon: Icons.inventory_2_rounded,
               );
             }
 
