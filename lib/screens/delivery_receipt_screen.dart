@@ -2,27 +2,65 @@ import 'package:flutter/material.dart';
 
 class DeliveryReceiptScreen extends StatelessWidget {
   final String orderId;
+  final String trackingNumber;
+  final String clientName;
+  final String address;
+  final String colony;
+  final String deliveredBy;
+  final DateTime? deliveredAt;
   final bool pendingSync;
   final String? syncError;
 
   const DeliveryReceiptScreen({
     super.key,
     required this.orderId,
+    this.trackingNumber = '',
+    this.clientName = '',
+    this.address = '',
+    this.colony = '',
+    this.deliveredBy = '',
+    this.deliveredAt,
     this.pendingSync = false,
     this.syncError,
   });
 
-  // Paleta de colores oficial
   static const Color primaryNavy = Color(0xFF1E3A8A);
   static const Color accentPink = Color(0xFFC23B75);
   static const Color bgLight = Color(0xFFF8FAFC);
   static const Color cardBorder = Color(0xFFE2E8F0);
   static const Color textGray = Color(0xFF64748B);
-  static const Color statusYellow = Color(0xFFFEF08A);
-  static const Color statusGreenBg = Color(0xFF1E3B8A); // O azul oscuro para entregado
+
+  String _formatDate(DateTime value) {
+    const months = [
+      'ene', 'feb', 'mar', 'abr', 'may', 'jun',
+      'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
+    ];
+    final hour = value.hour % 12 == 0 ? 12 : value.hour % 12;
+    final minute = value.minute.toString().padLeft(2, '0');
+    final period = value.hour >= 12 ? 'p. m.' : 'a. m.';
+    return value.day.toString() + ' ' + months[value.month - 1] + ' ' +
+        value.year.toString() + ' · ' + hour.toString() + ':' + minute + ' ' + period;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final hasSyncIssue = syncError != null || pendingSync;
+    final displayOrder = trackingNumber.trim().isNotEmpty
+        ? trackingNumber
+        : orderId;
+    final displayClient = clientName.trim().isNotEmpty
+        ? clientName
+        : 'Cliente no disponible';
+    final addressParts = [
+      address.trim(),
+      colony.trim(),
+    ].where((part) => part.isNotEmpty).toList();
+    final displayAddress = addressParts.join(' · ');
+    final displayDriver = deliveredBy.trim().isNotEmpty
+        ? deliveredBy
+        : 'Repartidor no disponible';
+    final date = deliveredAt ?? DateTime.now();
+
     return Scaffold(
       backgroundColor: bgLight,
       appBar: AppBar(
@@ -34,7 +72,7 @@ class DeliveryReceiptScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Recibo entrega',
+          'Recibo de entrega',
           style: TextStyle(
             color: primaryNavy,
             fontWeight: FontWeight.bold,
@@ -42,88 +80,69 @@ class DeliveryReceiptScreen extends StatelessWidget {
           ),
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.ios_share_rounded, color: primaryNavy, size: 20),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: SafeArea(
         child: Column(
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 child: Column(
                   children: [
-                    // Círculo de éxito y Título "Entrega Completada"
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     Container(
-                      width: 64,
-                      height: 64,
+                      width: 68,
+                      height: 68,
                       decoration: BoxDecoration(
-                        color: statusYellow,
+                        color: hasSyncIssue
+                            ? const Color(0xFFFFEDD5)
+                            : const Color(0xFFDCFCE7),
                         shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: statusYellow.withOpacity(0.4),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
                       ),
-                      alignment: Alignment.center,
                       child: Icon(
-                        syncError != null
-                            ? Icons.error_outline_rounded
-                            : pendingSync
-                                ? Icons.cloud_upload_outlined
-                                : Icons.check_rounded,
-                        color: syncError != null || pendingSync
+                        hasSyncIssue
+                            ? Icons.cloud_upload_outlined
+                            : Icons.check_rounded,
+                        color: hasSyncIssue
                             ? const Color(0xFF9A3412)
-                            : primaryNavy,
+                            : const Color(0xFF15803D),
                         size: 36,
                       ),
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      syncError != null || pendingSync
-                          ? 'Entrega guardada'
-                          : 'Entrega Completada',
+                      hasSyncIssue ? 'Entrega guardada' : 'Entrega completada',
                       style: const TextStyle(
-                        fontSize: 24,
+                        fontSize: 23,
                         fontWeight: FontWeight.bold,
                         color: primaryNavy,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       syncError ??
                           (pendingSync
-                              ? 'La evidencia quedó guardada. Se reintentará cuando el servidor vuelva a estar disponible.'
-                              : 'Otro pedido entregado satisfactoriamente'),
+                              ? 'La evidencia está guardada en el dispositivo y se sincronizará cuando haya conexión.'
+                              : 'El comprobante de esta entrega se registró correctamente.'),
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 13,
                         color: textGray,
-                        fontWeight: FontWeight.w500,
+                        height: 1.4,
                       ),
                     ),
                     const SizedBox(height: 24),
-
-                    // Tarjeta Principal de Recibo
                     Container(
+                      width: double.infinity,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: cardBorder, width: 1),
+                        border: Border.all(color: cardBorder),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.03),
-                            blurRadius: 10,
+                            blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
                         ],
@@ -131,180 +150,122 @@ class DeliveryReceiptScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // ID de Orden y Etiqueta ENTREGADO
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                orderId,
-                                style: const TextStyle(
-                                  fontSize: 18,
+                              const Text(
+                                'PEDIDO',
+                                style: TextStyle(
+                                  color: textGray,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: primaryNavy,
+                                  letterSpacing: 0.6,
                                 ),
                               ),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 5),
+                                    horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: syncError != null || pendingSync
-                                      ? const Color(0xFF9A3412)
-                                      : statusGreenBg,
-                                  borderRadius: BorderRadius.circular(12),
+                                  color: hasSyncIssue
+                                      ? const Color(0xFFFFEDD5)
+                                      : const Color(0xFFDCFCE7),
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      syncError != null
-                                          ? Icons.error_outline
-                                          : pendingSync
-                                              ? Icons.cloud_upload_outlined
-                                              : Icons.check,
-                                      size: 12,
-                                      color: Colors.white,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      syncError != null
-                                          ? 'REVISAR'
-                                          : pendingSync
-                                              ? 'PENDIENTE'
-                                              : 'ENTREGADO',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ],
+                                child: Text(
+                                  hasSyncIssue ? 'PENDIENTE' : 'ENTREGADO',
+                                  style: TextStyle(
+                                    color: hasSyncIssue
+                                        ? const Color(0xFF9A3412)
+                                        : const Color(0xFF166534),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            '27 Oct 2026 · 10:24 AM',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: textGray,
+                          const SizedBox(height: 5),
+                          Text(
+                            displayOrder,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: primaryNavy,
                             ),
                           ),
+                          const SizedBox(height: 5),
+                          Text(
+                            _formatDate(date),
+                            style: const TextStyle(fontSize: 12, color: textGray),
+                          ),
                           const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16),
+                            padding: EdgeInsets.symmetric(vertical: 18),
                             child: Divider(height: 1, color: Color(0xFFF1F5F9)),
                           ),
-
-                          // Información del Cliente y Dirección
                           const Text(
-                            'Maria Oliveira',
+                            'DESTINATARIO',
                             style: TextStyle(
-                              fontSize: 16,
+                              color: textGray,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            displayClient,
+                            style: const TextStyle(
+                              fontSize: 17,
                               fontWeight: FontWeight.bold,
                               color: primaryNavy,
                             ),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            '214 W 16th St, Apt 3B\nNew York, NY 10011',
-                            style: TextStyle(
+                          Text(
+                            displayAddress.isEmpty
+                                ? 'Dirección no disponible'
+                                : displayAddress,
+                            style: const TextStyle(
                               fontSize: 13,
                               color: textGray,
                               height: 1.4,
                             ),
                           ),
                           const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16),
+                            padding: EdgeInsets.symmetric(vertical: 18),
                             child: Divider(height: 1, color: Color(0xFFF1F5F9)),
                           ),
-
-                          // Detalles del Paquete y Comprobante
-                          _buildDetailRow(label: 'Paquete', value: '1 paquete · 2.4 kg'),
-                          const SizedBox(height: 10),
-                          _buildDetailRow(label: 'Entregado por', value: 'Juan Cuevas'),
-                          const SizedBox(height: 10),
-                          _buildDetailRow(label: 'Comprobante de Entrega', value: 'foto + firma'),
-                          
+                          _buildDetailRow('Entregado por', displayDriver),
+                          const SizedBox(height: 14),
+                          _buildDetailRow('Evidencia', 'Fotografía + firma'),
                           const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16),
+                            padding: EdgeInsets.symmetric(vertical: 18),
                             child: Divider(height: 1, color: Color(0xFFF1F5F9)),
                           ),
-
-                          // Sincronización segura
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.verified_user_outlined, size: 16, color: textGray),
-                              SizedBox(width: 8),
-                              Text(
-                                'Sincronizado de manera segura',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: textGray,
-                                  fontWeight: FontWeight.w500,
+                              Icon(
+                                hasSyncIssue
+                                    ? Icons.cloud_off_outlined
+                                    : Icons.verified_user_outlined,
+                                size: 17,
+                                color: textGray,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  hasSyncIssue
+                                      ? 'Pendiente de sincronización con el servidor'
+                                      : 'Comprobante sincronizado con el servidor',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: textGray,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Tarjeta de Próxima Parada (Siguiente entrega)
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: cardBorder, width: 1),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEEF2FF),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: const Icon(Icons.alt_route_rounded,
-                                color: primaryNavy, size: 20),
-                          ),
-                          const SizedBox(width: 14),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Proxima parada',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: textGray,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  'Daniel Kim',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    color: primaryNavy,
-                                  ),
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  '85 10th Ave, Floor 2 · #LT-543211',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: textGray,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(Icons.chevron_right_rounded,
-                              color: textGray, size: 20),
                         ],
                       ),
                     ),
@@ -313,16 +274,13 @@ class DeliveryReceiptScreen extends StatelessWidget {
                 ),
               ),
             ),
-
-            // Botón Inferior: Volver a Entregas
             Padding(
               padding: const EdgeInsets.all(20),
               child: SizedBox(
                 width: double.infinity,
-                height: 52,
+                height: 56,
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    // Regresar a la pantalla principal de Home
                     Navigator.popUntil(context, (route) => route.isFirst);
                   },
                   icon: const Icon(Icons.arrow_back_rounded,
@@ -338,7 +296,6 @@ class DeliveryReceiptScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: accentPink,
                     elevation: 3,
-                    shadowColor: accentPink.withOpacity(0.4),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18),
                     ),
@@ -352,24 +309,26 @@ class DeliveryReceiptScreen extends StatelessWidget {
     );
   }
 
-  // Widget auxiliar para filas de detalle
-  Widget _buildDetailRow({required String label, required String value}) {
+  Widget _buildDetailRow(String label, String value) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13,
-            color: textGray,
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 13, color: textGray),
           ),
         ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: primaryNavy,
+        const SizedBox(width: 12),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: primaryNavy,
+            ),
           ),
         ),
       ],
