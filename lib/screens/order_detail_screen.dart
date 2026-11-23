@@ -225,7 +225,13 @@ class OrderDetailScreen extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
-                                  PhotoEvidenceScreen(orderId: orderId),
+                                  PhotoEvidenceScreen(
+                                    orderId: orderId,
+                                    trackingNumber: trackingNumber,
+                                    clientName: clientName,
+                                    address: address,
+                                    colony: colony,
+                                  ),
                             ),
                           );
                         },
