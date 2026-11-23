@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/order_model.dart';
 import '../services/api_service.dart';
 import '../services/haptic_service.dart';
+import '../services/voice_assistant_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'order_detail_screen.dart';
 import '../widgets/lulistrack_loading.dart';
 
@@ -126,6 +128,87 @@ class _HomeScreenState extends State<HomeScreen> {
       MaterialPageRoute(builder: (context) => OrderDetailScreen(orderData: orderMap)),
     );
     if (mounted) await _refreshOrders();
+  }
+
+  Future<void> _activateVoiceAssistant() async {
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool('immersive_voice_assistant_enabled') ?? false;
+    if (!enabled) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Activa el asistente en Perfil > Experiencia inmersiva.')),
+      );
+      return;
+    }
+    final started = await VoiceAssistantService.instance.startListening(
+      onCommand: _handleVoiceCommand,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(started
+            ? 'Te escucho. Di “cuántos pedidos tengo”, “siguiente pedido” o “repetir información”.'
+            : 'No se pudo iniciar el micrófono. Revisa el permiso de audio.'),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  Future<void> _handleVoiceCommand(String command) async {
+    final normalized = command.toLowerCase();
+    try {
+      if (normalized.contains('cuántos') ||
+          normalized.contains('cuantos') ||
+          normalized.contains('mis pedidos') ||
+          normalized.contains('pedidos tengo')) {
+        final results = await _loadOrders();
+        await VoiceAssistantService.instance.speak(
+          'Tienes ' + results[0].length.toString() +
+          ' pedidos activos y ' + results[1].length.toString() +
+          ' pedidos disponibles.',
+        );
+        return;
+      }
+      if (normalized.contains('siguiente') ||
+          normalized.contains('abrir pedido') ||
+          normalized.contains('ver pedido')) {
+        final orders = await ApiService.getActiveOrders();
+        if (orders.isEmpty) {
+          await VoiceAssistantService.instance.speak('No tienes pedidos activos por ahora.');
+          return;
+        }
+        final order = orders.first;
+        await VoiceAssistantService.instance.speak(
+          'Abriendo el pedido ' + order.trackingNumber + ', de ' + order.clientName + '.',
+        );
+        if (!mounted) return;
+        await _openOrderDetail(order);
+        return;
+      }
+      if (normalized.contains('repetir') ||
+          normalized.contains('información') ||
+          normalized.contains('informacion')) {
+        final orders = await ApiService.getActiveOrders();
+        if (orders.isEmpty) {
+          await VoiceAssistantService.instance.speak('No hay información de pedidos activos para repetir.');
+        } else {
+          final order = orders.first;
+          await VoiceAssistantService.instance.speak(
+            'Tu primer pedido activo es ' + order.trackingNumber +
+            ', cliente ' + order.clientName + '. Dirección: ' +
+            order.address + ', colonia ' + order.colony + '.',
+          );
+        }
+        return;
+      }
+      await VoiceAssistantService.instance.speak(
+        'No reconocí ese comando. Puedes preguntar cuántos pedidos tienes, abrir el siguiente pedido o repetir la información.',
+      );
+    } catch (_) {
+      await VoiceAssistantService.instance.speak(
+        'No pude consultar tus pedidos. Intenta de nuevo cuando tengas conexión.',
+      );
+    }
   }
 
   @override
@@ -363,17 +446,33 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      floatingActionButton: Container(
-        margin: const EdgeInsets.only(bottom: 20),
-        child: FloatingActionButton.extended(
-          onPressed: _refreshOrders,
-          backgroundColor: accentPink,
-          elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-          label: const Text(
-            'Actualizar Pedidos',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-          ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            FloatingActionButton.small(
+              heroTag: 'lulistrack_voice_assistant',
+              onPressed: _activateVoiceAssistant,
+              backgroundColor: primaryNavy,
+              foregroundColor: Colors.white,
+              tooltip: 'Asistente de voz',
+              child: const Icon(Icons.mic_rounded),
+            ),
+            const SizedBox(height: 12),
+            FloatingActionButton.extended(
+              heroTag: 'lulistrack_refresh_orders',
+              onPressed: _refreshOrders,
+              backgroundColor: accentPink,
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+              label: const Text(
+                'Actualizar Pedidos',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ),
+          ],
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
