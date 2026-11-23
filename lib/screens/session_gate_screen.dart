@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/api_service.dart';
 import '../services/biometric_service.dart';
 import '../services/notification_service.dart';
+import '../widgets/lulistrack_loading.dart';
 import 'login_screen.dart';
 import 'main_navigation.dart';
 
@@ -117,8 +118,10 @@ class _SessionGateScreenState extends State<SessionGateScreen> {
     if (_loading) {
       return const Scaffold(
         backgroundColor: Color(0xFFF8FAFC),
-        body: Center(
-          child: CircularProgressIndicator(color: navy),
+        body: LulistrackLoading(
+          title: 'Verificando tu sesión',
+          subtitle: 'Estamos preparando tu espacio de trabajo seguro.',
+          icon: Icons.fingerprint_rounded,
         ),
       );
     }
@@ -166,14 +169,7 @@ class _SessionGateScreenState extends State<SessionGateScreen> {
                   child: FilledButton.icon(
                     onPressed: _authenticating ? null : _unlock,
                     icon: _authenticating
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
+                        ? const LulistrackActionLoading(color: Colors.white, size: 19)
                         : const Icon(Icons.lock_open_rounded),
                     label: Text(
                       _authenticating ? 'Verificando...' : 'Desbloquear',
