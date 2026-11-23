@@ -10,12 +10,14 @@ import 'delivery_receipt_screen.dart';
 
 class DeliveryReviewScreen extends StatefulWidget {
   final String orderId;
+  final String clientName;
   final String photoBase64;
   final String signatureBase64;
 
   const DeliveryReviewScreen({
     super.key,
     required this.orderId,
+    this.clientName = '',
     required this.photoBase64,
     required this.signatureBase64,
   });
@@ -430,6 +432,14 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
                                     color: primaryNavy,
                                   ),
                                 ),
+                                if (widget.clientName.trim().isNotEmpty)
+                                  Text(
+                                    widget.clientName,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: textGray,
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
