@@ -6,6 +6,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/haptic_service.dart';
+import '../widgets/lulistrack_dialog.dart';
+import '../widgets/fitts_touch_target.dart';
 
 import 'signature_screen.dart';
 
@@ -53,10 +55,11 @@ class _PhotoEvidenceScreenState extends State<PhotoEvidenceScreen> {
       await HapticService.error();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No se pudo abrir la cámara'),
-          ),
+        await LulistrackDialog.error(
+          context,
+          title: 'Cámara no disponible',
+          message: 'No pudimos abrir la cámara. Revisa el permiso de cámara e inténtalo nuevamente.',
+          buttonLabel: 'Entendido',
         );
       }
     }
@@ -87,10 +90,11 @@ class _PhotoEvidenceScreenState extends State<PhotoEvidenceScreen> {
       debugPrint('Error al preparar la fotografia: $e');
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No se pudo preparar la fotografia'),
-          ),
+        await LulistrackDialog.error(
+          context,
+          title: 'No se pudo preparar la foto',
+          message: 'Ocurrió un problema al procesar la evidencia. Vuelve a intentarlo.',
+          buttonLabel: 'Entendido',
         );
       }
     } finally {
@@ -346,7 +350,7 @@ class _PhotoEvidenceScreenState extends State<PhotoEvidenceScreen> {
               padding: const EdgeInsets.all(20),
               child: SizedBox(
                 width: double.infinity,
-                height: 52,
+                height: FittsTouchTarget.primary,
                 child: ElevatedButton(
                   onPressed: _capturedImage == null || _isLoading
                       ? null
