@@ -14,8 +14,13 @@ class VoiceAssistantService {
 
   bool _initialized = false;
   bool _isListening = false;
+  bool _sessionActive = false;
+  bool _processingCommand = false;
+  bool _handsFreeEnabled = false;
+  VoiceCommandCallback? _onCommand;
 
   bool get isListening => _isListening;
+  bool get isSessionActive => _sessionActive;
 
   Future<bool> initialize() async {
     if (_initialized) return true;
@@ -48,13 +53,27 @@ class VoiceAssistantService {
     final available = await initialize();
     if (!available) return false;
 
+    _onCommand = onCommand;
+    _handsFreeEnabled =
+        prefs.getBool('immersive_hands_free_enabled') ?? false;
+    _sessionActive = true;
+    return _listenOnce();
+  }
+
+  Future<bool> _listenOnce() async {
+    if (!_sessionActive || _processingCommand || _speech.isListening) {
+      return false;
+    }
+
     await _speech.listen(
       localeId: 'es_MX',
       listenFor: const Duration(seconds: 12),
       pauseFor: const Duration(seconds: 3),
       onResult: (result) {
-        if (result.finalResult && result.recognizedWords.trim().isNotEmpty) {
-          onCommand(result.recognizedWords.trim().toLowerCase());
+        if (result.finalResult &&
+            result.recognizedWords.trim().isNotEmpty &&
+            !_processingCommand) {
+          _processCommand(result.recognizedWords.trim().toLowerCase());
         }
       },
     );
@@ -62,9 +81,42 @@ class VoiceAssistantService {
     return true;
   }
 
-  Future<void> stopListening() async {
-    if (_speech.isListening) await _speech.stop();
+  Future<void> _processCommand(String command) async {
+    if (_processingCommand) return;
+    _processingCommand = true;
     _isListening = false;
+
+    try {
+      await _onCommand?.call(command);
+    } finally {
+      _processingCommand = false;
+    }
+
+    if (!_sessionActive) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final assistantEnabled =
+        prefs.getBool('immersive_voice_assistant_enabled') ?? false;
+    _handsFreeEnabled =
+        prefs.getBool('immersive_hands_free_enabled') ?? false;
+
+    if (!assistantEnabled) {
+      await stopListening();
+      return;
+    }
+
+    if (_handsFreeEnabled && _sessionActive) {
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      await _listenOnce();
+    } else {
+      _sessionActive = false;
+    }
+  }
+
+  Future<void> stopListening() async {
+    _sessionActive = false;
+    _isListening = false;
+    if (_speech.isListening) await _speech.stop();
   }
 
   Future<void> speak(String message) async {
@@ -72,7 +124,8 @@ class VoiceAssistantService {
     final enabled = prefs.getBool('immersive_voice_assistant_enabled') ?? false;
     if (!enabled || message.trim().isEmpty) return;
 
-    await stopListening();
+    if (_speech.isListening) await _speech.stop();
+    _isListening = false;
     await initialize();
     await _tts.stop();
     await _tts.speak(message);
@@ -81,5 +134,6 @@ class VoiceAssistantService {
   Future<void> dispose() async {
     await stopListening();
     await _tts.stop();
+    _onCommand = null;
   }
 }
