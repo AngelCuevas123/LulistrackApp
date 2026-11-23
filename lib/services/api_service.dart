@@ -259,6 +259,7 @@ class ApiService {
     required String orderId,
     required String photoBase64,
     required String signatureBase64,
+    DateTime? deliveredAt,
   }) async {
     final cleanId = orderId.replaceAll('#', '').trim();
     final response = await http.post(
@@ -270,7 +271,7 @@ class ApiService {
       body: json.encode({
         'photo_base64': photoBase64,
         'signature_base64': signatureBase64,
-        'timestamp': DateTime.now().toIso8601String(),
+        'timestamp': (deliveredAt ?? DateTime.now()).toIso8601String(),
       }),
     ).timeout(const Duration(seconds: 90));
     print('Respuesta de FastAPI: ${response.statusCode}');
