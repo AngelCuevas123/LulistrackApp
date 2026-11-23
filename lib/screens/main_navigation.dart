@@ -5,6 +5,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import '../models/order_model.dart';
 import '../services/api_service.dart';
+import '../services/biometric_service.dart';
 import '../services/offline_sync_service.dart';
 import 'home_screen.dart';
 import 'my_route_screen.dart';
@@ -21,6 +22,8 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> with WidgetsBindingObserver {
   int _currentIndex = 0;
+  bool _isLocked = false;
+  bool _authInProgress = false;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   @override
@@ -46,10 +49,28 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       unawaited(DriverLocationService.instance.resume());
-    } else if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive ||
+      unawaited(_unlockIfNeeded());
+    } else if (state == AppLifecycleState.paused) {
+      unawaited(DriverLocationService.instance.pause());
+      unawaited(_lockIfBiometricsEnabled());
+    } else if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached) {
       unawaited(DriverLocationService.instance.pause());
+    }
+  }
+
+  Future<void> _lockIfBiometricsEnabled() async {
+    if (!await BiometricService.instance.isEnabled() || !mounted) return;
+    setState(() => _isLocked = true);
+  }
+
+  Future<void> _unlockIfNeeded() async {
+    if (!_isLocked || _authInProgress || !mounted) return;
+    _authInProgress = true;
+    final authenticated = await BiometricService.instance.authenticate();
+    _authInProgress = false;
+    if (authenticated && mounted) {
+      setState(() => _isLocked = false);
     }
   }
 
@@ -174,11 +195,69 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: _currentIndex,
+            children: _screens,
+          ),
+          if (_isLocked)
+            Positioned.fill(
+              child: ColoredBox(
+                color: const Color(0xFFF8FAFC),
+                child: SafeArea(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.fingerprint_rounded,
+                            size: 76,
+                            color: primaryNavy,
+                          ),
+                          const SizedBox(height: 20),
+                          const Text(
+                            'Lulistrack está bloqueado',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: primaryNavy,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Confirma tu identidad para continuar.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.black54),
+                          ),
+                          const SizedBox(height: 24),
+                          FilledButton.icon(
+                            onPressed: _authInProgress
+                                ? null
+                                : _unlockIfNeeded,
+                            icon: const Icon(Icons.lock_open_rounded),
+                            label: const Text('Desbloquear'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: accentPink,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 28,
+                                vertical: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
-      bottomNavigationBar: SafeArea(
+      bottomNavigationBar: _isLocked ? null : SafeArea(
         child: Container(
           height: 84,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
