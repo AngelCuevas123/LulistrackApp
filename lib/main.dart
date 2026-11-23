@@ -8,7 +8,7 @@ import 'firebase_options.dart';
 import 'screens/session_gate_screen.dart';
 import 'services/api_service.dart';
 import 'screens/lulistrack_splash_screen.dart';
-
+import 'package:flutter/cupertino.dart';
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(

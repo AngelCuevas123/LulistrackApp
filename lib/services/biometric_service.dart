@@ -11,7 +11,7 @@ class BiometricService {
   static final BiometricService instance = BiometricService._();
 
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
-  static const LocalAuthentication _auth = LocalAuthentication();
+  static final LocalAuthentication _auth = LocalAuthentication();
 
   static const String _enabledKey = 'lulistrack_biometric_enabled';
   static const String _promptedKey = 'lulistrack_biometric_prompted';
