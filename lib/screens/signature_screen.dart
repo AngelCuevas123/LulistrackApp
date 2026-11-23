@@ -433,14 +433,7 @@ class _SignatureScreenState extends State<SignatureScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _isLoading ? null : _saveSignature,
                   icon: _isLoading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
+                      ? const LulistrackActionLoading(color: Colors.white, size: 19)
                       : const Icon(
                           Icons.check_rounded,
                           color: Colors.white,
