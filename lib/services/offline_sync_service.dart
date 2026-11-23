@@ -41,8 +41,7 @@ class OfflineSyncService {
   }
 
   Future<DeliverySyncResult> _syncPendingDeliveries() async {
-    final pending = await OfflineDatabase.instance.getPendingDeliveries();
-    if (pending.isEmpty) {
+    if (ApiService.authToken == null || ApiService.authToken!.isEmpty) {
       return const DeliverySyncResult(
         syncedIds: <String>{},
         pendingIds: <String>{},
@@ -50,16 +49,15 @@ class OfflineSyncService {
       );
     }
 
-    if (ApiService.authToken == null || ApiService.authToken!.isEmpty) {
-      return DeliverySyncResult(
+    // La reclamación es transaccional en SQLite: otra instancia no puede
+    // procesar al mismo tiempo los mismos comprobantes.
+    final pending =
+        await OfflineDatabase.instance.claimPendingDeliveries();
+    if (pending.isEmpty) {
+      return const DeliverySyncResult(
         syncedIds: <String>{},
         pendingIds: <String>{},
-        rejected: {
-          for (final item in pending)
-            if (item['local_id'] != null)
-              item['local_id'].toString():
-                  'No hay una sesión activa. Inicia sesión para sincronizar la evidencia.',
-        },
+        rejected: <String, String>{},
       );
     }
     final syncedIds = <String>{};
@@ -76,6 +74,13 @@ class OfflineSyncService {
           orderId == null ||
           photoPath == null ||
           signaturePath == null) {
+        if (localId != null) {
+          await OfflineDatabase.instance.markDeliveryNeedsAttention(
+            localId,
+            'El registro local está incompleto y requiere revisión.',
+          );
+          rejected[localId] = 'El registro local está incompleto y requiere revisión.';
+        }
         continue;
       }
 
