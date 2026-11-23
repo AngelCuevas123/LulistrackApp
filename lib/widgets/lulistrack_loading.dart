@@ -44,7 +44,7 @@ class _LulistrackLoadingState extends State<LulistrackLoading>
           animation: _motion,
           builder: (context, _) {
             final wave = math.sin(_motion.value * math.pi * 2);
-            final progress = (_motion.value * 0.72 + 0.16).clamp(0.0, 1.0);
+            final progress = (_motion.value * 0.72 + 0.16).clamp(0.0, 1.0).toDouble();
 
             return Column(
               mainAxisSize: MainAxisSize.min,
