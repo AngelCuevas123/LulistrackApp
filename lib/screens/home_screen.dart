@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/order_model.dart';
 import '../services/api_service.dart';
 import 'order_detail_screen.dart';
+import '../widgets/lulistrack_loading.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -285,10 +286,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   builder: (context, snapshot) {
                     if (snapshot.connectionState ==
                         ConnectionState.waiting) {
-                      return const Center(
-                        child: CircularProgressIndicator(
-                          color: accentPink,
-                        ),
+                      return const LulistrackLoading(
+                        title: 'Cargando tus entregas',
+                        subtitle: 'Estamos organizando pedidos y rutas disponibles.',
+                        icon: Icons.local_shipping_rounded,
                       );
                     }
 
