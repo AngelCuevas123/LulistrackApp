@@ -3,6 +3,8 @@
 <plist version="1.0">
 <dict>
     <!-- Descripciones de permisos para iOS -->
+    <key>NSFaceIDUsageDescription</key>
+    <string>Lulistrack utiliza Face ID para desbloquear tu sesión de forma segura.</string>
     <key>NSCameraUsageDescription</key>
     <string>Lulistrack necesita acceso a la cámara para capturar la evidencia fotográfica de las entregas.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
