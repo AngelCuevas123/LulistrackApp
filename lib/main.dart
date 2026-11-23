@@ -5,7 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'firebase_options.dart';
-import 'screens/login_screen.dart';
+import 'screens/session_gate_screen.dart';
 import 'screens/lulistrack_splash_screen.dart';
 
 @pragma('vm:entry-point')
@@ -57,7 +57,7 @@ class LulistrackApp extends StatelessWidget {
           },
         ),
       ),
-      home: const LulistrackSplashScreen(nextScreen: LoginScreen()),
+      home: const LulistrackSplashScreen(nextScreen: SessionGateScreen()),
     );
   }
 }
