@@ -1,5 +1,6 @@
 
 import 'dart:convert';
+import '../widgets/lulistrack_loading.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -173,10 +174,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 builder: (context, snapshot) {
                   if (snapshot.connectionState ==
                       ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: accentPink,
-                      ),
+                    return const LulistrackLoading(
+                      title: 'Cargando historial',
+                      subtitle: 'Recuperando tus entregas anteriores.',
+                      icon: Icons.history_rounded,
                     );
                   }
 
