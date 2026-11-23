@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'order_detail_screen.dart';
 import 'bug_report_screen.dart';
 import '../widgets/lulistrack_loading.dart';
+import '../widgets/lulistrack_dialog.dart';
+import '../widgets/fitts_touch_target.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -107,6 +109,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _claimOrder(OrderModel order) async {
+    final confirmed = await LulistrackDialog.confirm(
+      context,
+      title: '¿Tomar este pedido?',
+      message: 'El pedido ${order.trackingNumber} se asignará a tu cuenta y aparecerá en tus entregas activas.',
+      confirmLabel: 'Tomar pedido',
+      icon: Icons.assignment_turned_in_outlined,
+    );
+    if (!confirmed || !mounted) return;
+
     try {
       await ApiService.claimOrder(order.id);
       await HapticService.success();
@@ -646,6 +657,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     backgroundColor: accentPink,
                     foregroundColor: Colors.white,
                     elevation: 0,
+                    minimumSize: const Size.fromHeight(FittsTouchTarget.primary),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
