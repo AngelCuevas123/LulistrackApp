@@ -5,6 +5,7 @@ import '../services/haptic_service.dart';
 import '../services/voice_assistant_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'order_detail_screen.dart';
+import 'bug_report_screen.dart';
 import '../widgets/lulistrack_loading.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -225,6 +226,20 @@ class _HomeScreenState extends State<HomeScreen> {
         await _openOrderDetail(order);
         return;
       }
+      if (normalized.contains('incidencia') ||
+          normalized.contains('reportar un error') ||
+          normalized.contains('problema técnico') ||
+          normalized.contains('problema tecnico')) {
+        await VoiceAssistantService.instance.speak(
+          'Abriendo el formulario de reporte técnico. Describe el problema y envíalo desde la pantalla.',
+        );
+        if (!mounted) return;
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const BugReportScreen()),
+        );
+        return;
+      }
       if (normalized.contains('repetir') ||
           normalized.contains('información') ||
           normalized.contains('informacion')) {
@@ -242,7 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
       await VoiceAssistantService.instance.speak(
-        'No reconocí ese comando. Puedes preguntar cuántos pedidos tienes, abrir el siguiente pedido o repetir la información.',
+        'No reconocí ese comando. Puedes consultar tus pedidos, abrir el siguiente, repetir la información o decir reportar incidencia.',
       );
     } catch (_) {
       await VoiceAssistantService.instance.speak(
