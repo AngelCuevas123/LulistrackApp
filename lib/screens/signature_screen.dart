@@ -12,13 +12,19 @@ import 'delivery_review_screen.dart';
 
 class SignatureScreen extends StatefulWidget {
   final String orderId;
+  final String trackingNumber;
   final String clientName;
+  final String address;
+  final String colony;
   final String photoBase64;
 
   const SignatureScreen({
     super.key,
     required this.orderId,
+    this.trackingNumber = '',
     this.clientName = '',
+    this.address = '',
+    this.colony = '',
     required this.photoBase64,
   });
 
@@ -94,7 +100,10 @@ class _SignatureScreenState extends State<SignatureScreen> {
         MaterialPageRoute(
           builder: (context) => DeliveryReviewScreen(
             orderId: widget.orderId,
+            trackingNumber: widget.trackingNumber,
             clientName: widget.clientName,
+            address: widget.address,
+            colony: widget.colony,
             photoBase64: widget.photoBase64,
             signatureBase64: signatureBase64,
           ),
