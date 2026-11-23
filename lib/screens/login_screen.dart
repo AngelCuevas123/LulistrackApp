@@ -6,6 +6,7 @@ import 'main_navigation.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
 import '../services/biometric_service.dart';
+import '../widgets/lulistrack_loading.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -484,14 +485,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       child: _isLoading
-                          ? const SizedBox(
-                              width: 23,
-                              height: 23,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2.5,
-                              ),
-                            )
+                          ? const LulistrackActionLoading(color: Colors.white, size: 22)
                           : const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
