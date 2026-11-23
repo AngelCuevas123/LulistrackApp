@@ -353,9 +353,7 @@ class _PhotoEvidenceScreenState extends State<PhotoEvidenceScreen> {
                     ),
                   ),
                   child: _isLoading
-                      ? const CircularProgressIndicator(
-                          color: Colors.white,
-                        )
+                      ? const LulistrackActionLoading(color: Colors.white, size: 21)
                       : const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
