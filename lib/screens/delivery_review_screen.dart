@@ -43,6 +43,34 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final database = OfflineDatabase.instance;
+      final existing = await database.getDeliveryByOrderId(widget.orderId);
+      if (existing != null) {
+        final existingLocalId = existing['local_id'].toString();
+        final alreadySynced = existing['status'] == 'synced';
+        final result = alreadySynced
+            ? null
+            : await OfflineSyncService.instance.syncPendingDeliveries();
+        final pending = !alreadySynced &&
+            (result == null ||
+                result.pendingIds.contains(existingLocalId) ||
+                !result.syncedIds.contains(existingLocalId));
+        final error = result?.rejected[existingLocalId];
+
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DeliveryReceiptScreen(
+              orderId: widget.orderId,
+              pendingSync: pending,
+              syncError: error,
+            ),
+          ),
+        );
+        return;
+      }
+
       final storage = OfflineEvidenceStorage.instance;
       final photoPath = await storage.saveBase64(
         orderId: widget.orderId,
@@ -61,13 +89,45 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
         RegExp(r'[^a-zA-Z0-9_-]'),
         '_',
       );
-      await OfflineDatabase.instance.enqueueDelivery(
+      final enqueued = await OfflineDatabase.instance.enqueueDelivery(
         localId: localId,
         orderId: widget.orderId,
         photoPath: photoPath,
         signaturePath: signaturePath,
         timestamp: DateTime.now(),
       );
+
+      if (!enqueued) {
+        // Otra confirmación pudo ganar la carrera entre la consulta y el insert.
+        await storage.deleteFileIfExists(photoPath);
+        await storage.deleteFileIfExists(signaturePath);
+        final existingDelivery =
+            await OfflineDatabase.instance.getDeliveryByOrderId(widget.orderId);
+        if (existingDelivery == null) {
+          throw StateError('No se pudo recuperar el comprobante existente.');
+        }
+        final existingLocalId = existingDelivery['local_id'].toString();
+        final alreadySynced = existingDelivery['status'] == 'synced';
+        final result = alreadySynced
+            ? null
+            : await OfflineSyncService.instance.syncPendingDeliveries();
+        final pending = !alreadySynced &&
+            (result == null ||
+                result.pendingIds.contains(existingLocalId) ||
+                !result.syncedIds.contains(existingLocalId));
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DeliveryReceiptScreen(
+              orderId: widget.orderId,
+              pendingSync: pending,
+              syncError: result?.rejected[existingLocalId],
+            ),
+          ),
+        );
+        return;
+      }
 
       final syncResult =
           await OfflineSyncService.instance.syncPendingDeliveries();
