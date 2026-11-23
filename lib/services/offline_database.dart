@@ -83,6 +83,47 @@ class OfflineDatabase {
             )
           ''');
         }
+        if (oldVersion < 3) {
+          await db.execute(
+            'ALTER TABLE pending_deliveries ADD COLUMN sync_started_at TEXT',
+          );
+          await db.update(
+            'pending_deliveries',
+            {'status': 'pending', 'sync_started_at': null},
+            where: "status = 'syncing'",
+          );
+
+          final duplicateGroups = await db.rawQuery("""
+            SELECT order_id
+            FROM pending_deliveries
+            WHERE status != 'duplicate'
+            GROUP BY order_id
+            HAVING COUNT(*) > 1
+          """);
+          for (final group in duplicateGroups) {
+            final rows = await db.query(
+              'pending_deliveries',
+              columns: ['local_id'],
+              where: 'order_id = ? AND status != ?',
+              whereArgs: [group['order_id'], 'duplicate'],
+              orderBy: 'created_at ASC, local_id ASC',
+            );
+            for (final duplicate in rows.skip(1)) {
+              await db.update(
+                'pending_deliveries',
+                {'status': 'duplicate'},
+                where: 'local_id = ?',
+                whereArgs: [duplicate['local_id']],
+              );
+            }
+          }
+
+          await db.execute("""
+            CREATE UNIQUE INDEX idx_one_active_delivery_per_order
+            ON pending_deliveries(order_id)
+            WHERE status != 'duplicate'
+          """);
+        }
       },
     );
     return _database!;
