@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../widgets/lulistrack_loading.dart';
 
 import '../services/offline_database.dart';
+import '../services/api_service.dart';
 import '../services/offline_evidence_storage.dart';
 import '../services/offline_sync_service.dart';
 import '../services/haptic_service.dart';
@@ -12,14 +13,20 @@ import 'delivery_receipt_screen.dart';
 
 class DeliveryReviewScreen extends StatefulWidget {
   final String orderId;
+  final String trackingNumber;
   final String clientName;
+  final String address;
+  final String colony;
   final String photoBase64;
   final String signatureBase64;
 
   const DeliveryReviewScreen({
     super.key,
     required this.orderId,
+    this.trackingNumber = '',
     this.clientName = '',
+    this.address = '',
+    this.colony = '',
     required this.photoBase64,
     required this.signatureBase64,
   });
@@ -82,6 +89,12 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
           MaterialPageRoute(
             builder: (context) => DeliveryReceiptScreen(
               orderId: widget.orderId,
+              trackingNumber: widget.trackingNumber,
+              clientName: widget.clientName,
+              address: widget.address,
+              colony: widget.colony,
+              deliveredBy: ApiService.currentDriver?.name ?? '',
+              deliveredAt: DateTime.now(),
               pendingSync: pending,
               syncError: error,
             ),
@@ -140,6 +153,12 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
           MaterialPageRoute(
             builder: (context) => DeliveryReceiptScreen(
               orderId: widget.orderId,
+              trackingNumber: widget.trackingNumber,
+              clientName: widget.clientName,
+              address: widget.address,
+              colony: widget.colony,
+              deliveredBy: ApiService.currentDriver?.name ?? '',
+              deliveredAt: DateTime.now(),
               pendingSync: pending,
               syncError: result?.rejected[existingLocalId],
             ),
@@ -165,6 +184,12 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
         MaterialPageRoute(
           builder: (context) => DeliveryReceiptScreen(
             orderId: widget.orderId,
+            trackingNumber: widget.trackingNumber,
+            clientName: widget.clientName,
+            address: widget.address,
+            colony: widget.colony,
+            deliveredBy: ApiService.currentDriver?.name ?? '',
+            deliveredAt: DateTime.now(),
             pendingSync: pendingSync,
             syncError: syncError,
           ),
