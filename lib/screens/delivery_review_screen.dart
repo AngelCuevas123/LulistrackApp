@@ -5,6 +5,7 @@ import '../widgets/lulistrack_loading.dart';
 import '../services/offline_database.dart';
 import '../services/offline_evidence_storage.dart';
 import '../services/offline_sync_service.dart';
+import '../services/haptic_service.dart';
 import 'delivery_receipt_screen.dart';
 
 class DeliveryReviewScreen extends StatefulWidget {
@@ -57,6 +58,11 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
                 !result.syncedIds.contains(existingLocalId));
         final error = result?.rejected[existingLocalId];
 
+        if (pending) {
+          await HapticService.warning();
+        } else {
+          await HapticService.success();
+        }
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
@@ -134,6 +140,12 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
       final pendingSync = syncResult.pendingIds.contains(localId);
       final syncError = syncResult.rejected[localId];
 
+      if (pendingSync) {
+        await HapticService.warning();
+      } else {
+        await HapticService.success();
+      }
+
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
@@ -147,6 +159,7 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
       );
     } catch (error) {
       debugPrint('Error al guardar la entrega localmente: $error');
+      await HapticService.error();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
