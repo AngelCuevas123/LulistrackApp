@@ -21,7 +21,26 @@ class OfflineSyncService {
 
   static final OfflineSyncService instance = OfflineSyncService._();
 
+  bool _isSyncing = false;
+
   Future<DeliverySyncResult> syncPendingDeliveries() async {
+    if (_isSyncing) {
+      return const DeliverySyncResult(
+        syncedIds: <String>{},
+        pendingIds: <String>{},
+        rejected: <String, String>{},
+      );
+    }
+
+    _isSyncing = true;
+    try {
+      return await _syncPendingDeliveries();
+    } finally {
+      _isSyncing = false;
+    }
+  }
+
+  Future<DeliverySyncResult> _syncPendingDeliveries() async {
     final pending = await OfflineDatabase.instance.getPendingDeliveries();
     if (pending.isEmpty) {
       return const DeliverySyncResult(
@@ -77,10 +96,24 @@ class OfflineSyncService {
         final signatureBase64 =
             base64Encode(await signatureFile.readAsBytes());
 
+        final deliveredAt = DateTime.tryParse(
+          item['timestamp']?.toString() ?? '',
+        );
+        if (deliveredAt == null) {
+          const message = 'La fecha original de entrega no es válida. Revisa esta evidencia.';
+          await OfflineDatabase.instance.markDeliveryNeedsAttention(
+            localId,
+            message,
+          );
+          rejected[localId] = message;
+          continue;
+        }
+
         final success = await ApiService.submitProofOfDelivery(
           orderId: orderId,
           photoBase64: photoBase64,
           signatureBase64: signatureBase64,
+          deliveredAt: deliveredAt,
         );
 
         if (!success) {
