@@ -11,6 +11,10 @@ class NotificationService {
   static StreamSubscription<RemoteMessage>? _foregroundSubscription;
 
   static String? _currentInstallationId;
+  static String? _lastRegisteredInstallationId;
+  static String? _registrationInProgressId;
+  static bool _initializationComplete = false;
+  static bool _initializing = false;
 
   static String get _platform =>
       defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
@@ -18,31 +22,37 @@ class NotificationService {
   // Solicita permisos y registra el Firebase Installation ID.
   static Future<void> initializeAndRegister() async {
     if (ApiService.authToken == null ||
-        ApiService.authToken!.isEmpty) {
+        ApiService.authToken!.isEmpty ||
+        _initializationComplete ||
+        _initializing) {
       return;
     }
 
-    final messaging = FirebaseMessaging.instance;
+    _initializing = true;
+    try {
+      final messaging = FirebaseMessaging.instance;
 
-    final settings = await messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+      final settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
 
-    if (settings.authorizationStatus == AuthorizationStatus.denied) {
-      debugPrint('El usuario rechazó las notificaciones.');
-      return;
+      if (settings.authorizationStatus == AuthorizationStatus.denied) {
+        debugPrint('El usuario rechazó las notificaciones.');
+        _initializationComplete = true;
+        return;
+      }
+
+      // Las suscripciones son únicas durante la sesión de la aplicación.
+      _listenInstallationRegistration();
+      _listenForegroundMessages();
+
+      await messaging.register();
+      _initializationComplete = true;
+    } finally {
+      _initializing = false;
     }
-
-    // Escuchar primero para no perder el evento de registro.
-    _listenInstallationRegistration();
-
-    // Escuchar notificaciones en primer plano.
-    _listenForegroundMessages();
-
-    // Registra la instalación en Firebase.
-    await messaging.register();
   }
 
   // Escucha los Firebase Installation IDs generados por Firebase.
@@ -55,15 +65,19 @@ class NotificationService {
             _currentInstallationId = installationId;
 
             if (ApiService.authToken == null ||
-                ApiService.authToken!.isEmpty) {
+                ApiService.authToken!.isEmpty ||
+                installationId == _lastRegisteredInstallationId ||
+                installationId == _registrationInProgressId) {
               return;
             }
 
+            _registrationInProgressId = installationId;
             try {
               await ApiService.registerFirebaseInstallationId(
                 firebaseInstallationId: installationId,
                 platform: _platform,
               );
+              _lastRegisteredInstallationId = installationId;
 
               debugPrint(
                 'Firebase Installation ID registrado correctamente.',
@@ -72,6 +86,10 @@ class NotificationService {
               debugPrint(
                 'Error al registrar el Firebase Installation ID: $e',
               );
+            } finally {
+              if (_registrationInProgressId == installationId) {
+                _registrationInProgressId = null;
+              }
             }
           },
           onError: (error) {
@@ -122,6 +140,10 @@ class NotificationService {
       _foregroundSubscription = null;
 
       _currentInstallationId = null;
+      _lastRegisteredInstallationId = null;
+      _registrationInProgressId = null;
+      _initializationComplete = false;
+      _initializing = false;
     }
   }
 }
