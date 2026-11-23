@@ -26,11 +26,17 @@ class _HomeScreenState extends State<HomeScreen> {
   late Future<List<List<OrderModel>>> _futureOrders;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  int? _lastActiveOrderCount;
+  int? _lastAvailableOrderCount;
 
   @override
   void initState() {
     super.initState();
     _futureOrders = _loadOrders();
+    _futureOrders.then((orders) {
+      _lastActiveOrderCount = orders[0].length;
+      _lastAvailableOrderCount = orders[1].length;
+    }).catchError((_) {});
   }
 
   Future<List<List<OrderModel>>> _loadOrders() {
@@ -41,11 +47,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _refreshOrders() async {
+    final future = _loadOrders();
     setState(() {
-      _futureOrders = _loadOrders();
+      _futureOrders = future;
     });
     try {
-      await _futureOrders;
+      final orders = await future;
+      final activeCount = orders[0].length;
+      final availableCount = orders[1].length;
+
+      if (_lastActiveOrderCount != null &&
+          activeCount > _lastActiveOrderCount!) {
+        await HapticService.success();
+      } else if (_lastAvailableOrderCount != null &&
+          availableCount > _lastAvailableOrderCount!) {
+        await HapticService.light();
+      }
+
+      _lastActiveOrderCount = activeCount;
+      _lastAvailableOrderCount = availableCount;
     } catch (_) {
       // El FutureBuilder mostrara el error en pantalla.
     }
