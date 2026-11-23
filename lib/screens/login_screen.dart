@@ -1,4 +1,6 @@
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -21,6 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _obscureText = true;
   bool _isLoading = false;
+  bool _isNavigating = false;
 
   static const Color primaryNavy = Color(0xFF213A81);
   static const Color accentPink = Color(0xFFBA4078);
@@ -111,6 +114,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Valida las credenciales registradas previamente desde el Dashboard.
   Future<void> _entrar() async {
+    if (_isLoading || _isNavigating) return;
+
     final email = _userController.text.trim();
     final password = _passwordController.text;
 
@@ -148,14 +153,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
       await ApiService.getMyDriverProfile(forceRefresh: true);
 
-      // Registrar el dispositivo para recibir notificaciones FCM.
-      // Si Firebase falla, el acceso a la aplicación continúa normalmente.
-      try {
-        await NotificationService.initializeAndRegister();
-      } catch (error) {
-        debugPrint('No se pudo registrar FCM: $error');
-      }
-
+      // La navegación no debe depender de permisos ni del registro FCM.
+      // El registro se inicia después de entrar a la aplicación.
       await _offerBiometricsAfterLogin();
 
       debugPrint('Inicio de sesión correcto.');
@@ -163,12 +162,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
 
-      // Entrar a la aplicación.
-      Navigator.pushReplacement(
-        context,
+      // Limpiar las rutas de arranque/login evita dejar pantallas intermedias
+      // en la pila y bloquea intentos duplicados de navegación.
+      _isNavigating = true;
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (context) => const MainNavigationScreen(),
+          builder: (_) => const MainNavigationScreen(),
         ),
+        (route) => false,
+      );
+
+      // FCM es secundario: se registra en segundo plano y no bloquea el acceso.
+      unawaited(
+        NotificationService.initializeAndRegister().catchError((Object error) {
+          debugPrint('No se pudo registrar FCM: $error');
+        }),
       );
     } on AuthException catch (error) {
       if (!mounted) return;
