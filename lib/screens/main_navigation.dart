@@ -176,7 +176,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
         context,
         MaterialPageRoute(
           builder: (context) =>
-              PhotoEvidenceScreen(orderId: selectedOrder.id),
+              PhotoEvidenceScreen(
+            orderId: selectedOrder.id,
+            clientName: selectedOrder.clientName,
+          ),
         ),
       );
     } catch (error) {
