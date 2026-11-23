@@ -28,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _searchQuery = '';
   int? _lastActiveOrderCount;
   int? _lastAvailableOrderCount;
+  bool _voiceSessionActive = false;
 
   @override
   void initState() {
@@ -161,9 +162,19 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     final started = await VoiceAssistantService.instance.startListening(
-      onCommand: _handleVoiceCommand,
+      onCommand: (command) async {
+        await _handleVoiceCommand(command);
+        final currentPrefs = await SharedPreferences.getInstance();
+        if (mounted) {
+          setState(() {
+            _voiceSessionActive =
+                currentPrefs.getBool('immersive_hands_free_enabled') ?? false;
+          });
+        }
+      },
     );
     if (!mounted) return;
+    setState(() => _voiceSessionActive = started);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(started
@@ -171,6 +182,15 @@ class _HomeScreenState extends State<HomeScreen> {
             : 'No se pudo iniciar el micrófono. Revisa el permiso de audio.'),
         duration: const Duration(seconds: 4),
       ),
+    );
+  }
+
+  Future<void> _stopVoiceAssistant() async {
+    await VoiceAssistantService.instance.stopListening();
+    if (!mounted) return;
+    setState(() => _voiceSessionActive = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Asistente de voz detenido.')),
     );
   }
 
@@ -474,11 +494,21 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             FloatingActionButton.small(
               heroTag: 'lulistrack_voice_assistant',
-              onPressed: _activateVoiceAssistant,
-              backgroundColor: primaryNavy,
+              onPressed: _voiceSessionActive
+                  ? _stopVoiceAssistant
+                  : _activateVoiceAssistant,
+              backgroundColor: _voiceSessionActive
+                  ? accentPink
+                  : primaryNavy,
               foregroundColor: Colors.white,
-              tooltip: 'Asistente de voz',
-              child: const Icon(Icons.mic_rounded),
+              tooltip: _voiceSessionActive
+                  ? 'Detener asistente'
+                  : 'Asistente de voz',
+              child: Icon(
+                _voiceSessionActive
+                    ? Icons.mic_off_rounded
+                    : Icons.mic_rounded,
+              ),
             ),
             const SizedBox(height: 12),
             FloatingActionButton.extended(
