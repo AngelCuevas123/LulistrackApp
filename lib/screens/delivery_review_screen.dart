@@ -379,14 +379,7 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
                       ? null
                       : _confirmAndSubmitDelivery,
                   icon: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
+                      ? const LulistrackActionLoading(color: Colors.white, size: 20)
                       : const Icon(
                           Icons.check_circle_outline,
                           color: Colors.white,
