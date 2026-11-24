@@ -94,7 +94,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
     } on AuthException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo enviar el enlace: \${error.message}')),
+        SnackBar(content: Text('No se pudo enviar el enlace: ${error.message}')),
       );
     } catch (_) {
       if (!mounted) return;
