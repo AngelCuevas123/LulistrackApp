@@ -72,8 +72,8 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
     emailController.dispose();
 
     if (email == null || email.isEmpty || !mounted) return;
-    final validEmail = email.contains('@') &&
-        email.split('@').last.contains('.');
+    final validEmail =
+        RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
     if (!validEmail) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Escribe un correo electrónico válido.')),
@@ -100,7 +100,9 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No se pudo completar la solicitud. Inténtalo nuevamente.'),
+          content: Text(
+            'No se pudo completar la solicitud. Inténtalo nuevamente.',
+          ),
         ),
       );
     }
@@ -193,13 +195,7 @@ class _SecurityPrivacyScreenState extends State<SecurityPrivacyScreen> {
                 size: 16,
                 color: textGray,
               ),
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Enlace de restablecimiento enviado'),
-                  ),
-                );
-              },
+              onTap: _sendPasswordReset,
             ),
             const SizedBox(height: 12),
             ListTile(
