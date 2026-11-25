@@ -34,6 +34,18 @@ class VoiceAssistantService {
     final available = await _speech.initialize(
       onStatus: (status) {
         _isListening = status == 'listening';
+        if (status == 'done' && _sessionActive && !_processingCommand) {
+          if (_handsFreeEnabled) {
+            Future<void>.delayed(const Duration(milliseconds: 350), () {
+              if (_sessionActive && !_processingCommand && !_speech.isListening) {
+                _listenOnce();
+              }
+            });
+          } else {
+            _sessionActive = false;
+            _notifySessionChanged();
+          }
+        }
       },
       onError: (_) {
         _isListening = false;
@@ -115,6 +127,8 @@ class VoiceAssistantService {
 
     try {
       await _onCommand?.call(command);
+    } catch (_) {
+      // Un fallo al ejecutar un comando no debe dejar el estado de voz bloqueado.
     } finally {
       _processingCommand = false;
     }
@@ -165,5 +179,6 @@ class VoiceAssistantService {
     await stopListening();
     await _tts.stop();
     _onCommand = null;
+    _onSessionChanged = null;
   }
 }
