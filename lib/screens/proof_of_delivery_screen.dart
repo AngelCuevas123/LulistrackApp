@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 
 class ProofOfDeliveryScreen extends StatelessWidget {
   final String orderId;
+  final String clientName;
+  final String address;
 
   const ProofOfDeliveryScreen({
     super.key,
-    this.orderId = 'LT-543210',
+    this.orderId = '',
+    this.clientName = '',
+    this.address = '',
   });
 
   // Paleta de colores oficial
@@ -63,9 +67,17 @@ class ProofOfDeliveryScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      'Maria Oliveira · Calle del Agua, Apt 3B',
-                      style: TextStyle(
+                    Text(
+                      [
+                        if (clientName.trim().isNotEmpty) clientName.trim(),
+                        if (address.trim().isNotEmpty) address.trim(),
+                      ].isEmpty
+                          ? 'Información del destinatario no disponible'
+                          : [
+                              if (clientName.trim().isNotEmpty) clientName.trim(),
+                              if (address.trim().isNotEmpty) address.trim(),
+                            ].join(' · '),
+                      style: const TextStyle(
                         fontSize: 13,
                         color: textGray,
                         fontWeight: FontWeight.w500,
