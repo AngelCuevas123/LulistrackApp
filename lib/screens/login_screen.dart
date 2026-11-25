@@ -165,7 +165,16 @@ class _LoginScreenState extends State<LoginScreen> {
       ApiService.authToken = session.accessToken;
       ApiService.currentDriver = null;
 
-      await ApiService.getMyDriverProfile(forceRefresh: true);
+      // La autenticación de Supabase ya fue completada. El perfil del
+      // repartidor se intenta cargar, pero un fallo temporal del backend
+      // no debe dejar al usuario atrapado en Login: SessionGateScreen
+      // permite continuar con la sesión válida bajo la misma condición.
+      try {
+        await ApiService.getMyDriverProfile(forceRefresh: true);
+      } catch (profileError, stackTrace) {
+        debugPrint('No se pudo cargar el perfil después del login: $profileError');
+        debugPrintStack(stackTrace: stackTrace);
+      }
 
       await _offerBiometricsAfterLogin();
 
@@ -208,7 +217,9 @@ class _LoginScreenState extends State<LoginScreen> {
         isError: true,
       );
     } finally {
-      if (mounted) {
+      // Si ya se inició la navegación, no reconstruir la pantalla de Login
+      // durante la transición hacia MainNavigationScreen.
+      if (mounted && !_isNavigating) {
         setState(() {
           _isLoading = false;
         });
