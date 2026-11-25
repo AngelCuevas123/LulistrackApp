@@ -174,16 +174,11 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     final started = await VoiceAssistantService.instance.startListening(
-      onCommand: (command) async {
-        await _handleVoiceCommand(command);
-        final currentPrefs = await SharedPreferences.getInstance();
-        if (mounted) {
-          setState(() {
-            _voiceSessionActive =
-                currentPrefs.getBool('immersive_hands_free_enabled') ?? false;
-          });
-        }
+      onSessionChanged: (active) {
+        if (!mounted) return;
+        setState(() => _voiceSessionActive = active);
       },
+      onCommand: _handleVoiceCommand,
     );
     if (!mounted) return;
     setState(() => _voiceSessionActive = started);
@@ -528,12 +523,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   : primaryNavy,
               foregroundColor: Colors.white,
               tooltip: _voiceSessionActive
-                  ? 'Detener asistente'
-                  : 'Asistente de voz',
+                  ? 'Micrófono activo · tocar para detener'
+                  : 'Micrófono apagado · tocar para activar',
               child: Icon(
                 _voiceSessionActive
-                    ? Icons.mic_off_rounded
-                    : Icons.mic_rounded,
+                    ? Icons.mic_rounded
+                    : Icons.mic_off_rounded,
               ),
             ),
             const SizedBox(height: 12),
