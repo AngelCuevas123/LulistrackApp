@@ -42,7 +42,7 @@ flutter:
   assets:
     - .env
     - assets/icon/lulistrack_icon.png
-
+    - assets/images/
 flutter_launcher_icons:
   android: true
   ios: true

@@ -22,6 +22,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _userController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  final FocusNode _emailFocus = FocusNode();
+  final FocusNode _passwordFocus = FocusNode();
+
   bool _obscureText = true;
   bool _isLoading = false;
   bool _isNavigating = false;
@@ -33,17 +36,27 @@ class _LoginScreenState extends State<LoginScreen> {
   static const Color lightBorder = Color(0xFFE5E7EB);
   static const Color background = Color(0xFFF8FAFC);
 
+  static const String loginImage =
+      'assets/images/lulistrack_login.jpg';
+
   @override
   void dispose() {
     _userController.dispose();
     _passwordController.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
+
+  // ============================================================
+  // ACCESO BIOMETRICO
+  // ============================================================
 
   Future<void> _offerBiometricsAfterLogin() async {
     final biometric = BiometricService.instance;
 
     if (await biometric.wasPrompted()) return;
+
     await biometric.markPrompted();
 
     if (!await biometric.isAvailable() || !mounted) return;
@@ -58,16 +71,16 @@ class _LoginScreenState extends State<LoginScreen> {
         icon: const Icon(
           Icons.fingerprint_rounded,
           color: primaryNavy,
-          size: 42,
+          size: 46,
         ),
         title: const Text(
           'Activa el acceso biométrico',
           textAlign: TextAlign.center,
         ),
         content: const Text(
-          'La próxima vez podrás desbloquear Lulistrack con la huella '
-          'o el reconocimiento facial de este dispositivo. '
-          'Tu contraseña no se guardará.',
+          'La próxima vez podrás desbloquear Lulistrack '
+              'con la huella o el reconocimiento facial de este dispositivo. '
+              'Tu contraseña no se guardará.',
           textAlign: TextAlign.center,
         ),
         actionsAlignment: MainAxisAlignment.spaceBetween,
@@ -95,6 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (authenticated) {
       await biometric.setEnabled(true);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -106,26 +120,28 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'No se pudo activar la biometría. Puedes intentarlo desde Seguridad y Privacidad.',
+            'No se pudo activar la biometría. '
+                'Puedes intentarlo desde Seguridad y Privacidad.',
           ),
         ),
       );
     }
   }
 
-  // Valida las credenciales registradas previamente desde el Dashboard.
+  // ============================================================
+  // INICIO DE SESION
+  // ============================================================
+
   Future<void> _entrar() async {
     if (_isLoading || _isNavigating) return;
+
+    FocusScope.of(context).unfocus();
 
     final email = _userController.text.trim();
     final password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ingresa tu correo y contraseña.'),
-        ),
-      );
+      _showMessage('Ingresa tu correo y contraseña.');
       return;
     }
 
@@ -134,68 +150,62 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      // Verificar las credenciales del repartidor con Supabase Auth.
       final authResponse =
-          await Supabase.instance.client.auth.signInWithPassword(
+      await Supabase.instance.client.auth.signInWithPassword(
         email: email,
         password: password,
       );
 
-      // Recuperar la sesión para utilizar su token en el backend.
       final session = authResponse.session;
 
       if (session == null) {
         throw Exception('No se pudo obtener la sesión.');
       }
 
-      // Guardar el token y cargar el perfil del repartidor.
       ApiService.authToken = session.accessToken;
       ApiService.currentDriver = null;
 
       await ApiService.getMyDriverProfile(forceRefresh: true);
 
-      // La navegación no debe depender de permisos ni del registro FCM.
-      // El registro se inicia después de entrar a la aplicación.
       await _offerBiometricsAfterLogin();
 
       debugPrint('Inicio de sesión correcto.');
-      debugPrint('Token disponible: ${ApiService.authToken != null}');
+      debugPrint(
+        'Token disponible: ${ApiService.authToken != null}',
+      );
 
       if (!mounted) return;
 
-      // Limpiar las rutas de arranque/login evita dejar pantallas intermedias
-      // en la pila y bloquea intentos duplicados de navegación.
       _isNavigating = true;
+
       Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (_) => const MainNavigationScreen(),
         ),
-        (route) => false,
+            (route) => false,
       );
 
-      // FCM es secundario: se registra en segundo plano y no bloquea el acceso.
+      // Las notificaciones no bloquean el acceso.
       unawaited(
-        NotificationService.initializeAndRegister().catchError((Object error) {
-          debugPrint('No se pudo registrar FCM: $error');
-        }),
+        NotificationService.initializeAndRegister().catchError(
+              (Object error) {
+            debugPrint('No se pudo registrar FCM: $error');
+          },
+        ),
       );
     } on AuthException catch (error) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.message),
-          backgroundColor: Colors.red,
-        ),
+      _showMessage(
+        error.message,
+        isError: true,
       );
     } catch (error) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Ocurrió un error: $error'),
-          backgroundColor: Colors.red,
-        ),
+      _showMessage(
+        'Ocurrió un error: $error',
+        isError: true,
       );
     } finally {
       if (mounted) {
@@ -206,424 +216,609 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: background,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 20,
+  // ============================================================
+  // MENSAJES
+  // ============================================================
+
+  void _showMessage(
+      String message, {
+        bool isError = false,
+      }) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: isError ? Colors.red.shade700 : primaryNavy,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(13),
+          ),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+  }
+
+  // ============================================================
+  // RECUPERACION DE CONTRASEÑA
+  // ============================================================
+
+  void _openForgotPassword() {
+    if (_isLoading) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ForgotPasswordScreen(
+          initialEmail: _userController.text.trim(),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // ENCABEZADO
+  // ============================================================
+
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            color: primaryNavy,
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: primaryNavy.withOpacity(0.18),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
               ),
+            ],
+          ),
+          child: const Icon(
+            Icons.local_shipping_rounded,
+            color: Colors.white,
+            size: 25,
+          ),
+        ),
+        const SizedBox(width: 12),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Lulistrack',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: primaryNavy,
+                  letterSpacing: -0.8,
+                ),
+              ),
+              Text(
+                'DELIVERY MANAGEMENT',
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.4,
+                  color: textGray,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: lightBorder),
+          ),
+          child: IconButton(
+            onPressed: () {
+              _showMessage(
+                'Para solicitar asistencia, contacta al administrador '
+                    'de Lulistrack.',
+              );
+            },
+            icon: const Icon(
+              Icons.help_outline_rounded,
+              color: primaryNavy,
+              size: 22,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // IMAGEN PRINCIPAL
+  // ============================================================
+
+  Widget _buildHeroImage() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(25),
+      child: SizedBox(
+        height: 220,
+        width: double.infinity,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              loginImage,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+              errorBuilder: (context, error, stackTrace) {
+                debugPrint('Error cargando imagen: $error');
+
+                return Container(
+                  color: primaryNavy,
+                  child: const Icon(
+                    Icons.delivery_dining_rounded,
+                    color: Colors.white,
+                    size: 85,
+                  ),
+                );
+              },
+            ),
+
+            // Degradado para mejorar la lectura del texto.
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    primaryNavy.withOpacity(0.03),
+                    primaryNavy.withOpacity(0.18),
+                    primaryNavy.withOpacity(0.88),
+                  ],
+                ),
+              ),
+            ),
+
+            // Etiqueta superior.
+            Positioned(
+              top: 16,
+              left: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.92),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.bolt_rounded,
+                      color: accentPink,
+                      size: 15,
+                    ),
+                    SizedBox(width: 5),
+                    Text(
+                      'LOGÍSTICA INTELIGENTE',
+                      style: TextStyle(
+                        color: primaryNavy,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.7,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Mensaje principal.
+            const Positioned(
+              left: 21,
+              right: 21,
+              bottom: 21,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ENCABEZADO
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: primaryNavy,
-                              borderRadius: BorderRadius.circular(13),
-                            ),
-                            child: const Icon(
-                              Icons.local_shipping_rounded,
-                              color: Colors.white,
-                              size: 23,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          const Text(
-                            'Lulistrack',
-                            style: TextStyle(
-                              fontSize: 23,
-                              fontWeight: FontWeight.bold,
-                              color: primaryNavy,
-                              letterSpacing: -0.7,
-                            ),
-                          ),
-                        ],
-                      ),
-                      IconButton(
-                        onPressed: () {},
-                        icon: const Icon(
-                          Icons.help_outline_rounded,
-                          color: primaryNavy,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  // IMAGEN PRINCIPAL
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: SizedBox(
-                      height: 205,
-                      width: double.infinity,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Image.network(
-                            'https://images.pexels.com/photos/4393668/pexels-photo-4393668.jpeg',
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: primaryNavy,
-                                child: const Icon(
-                                  Icons.delivery_dining_rounded,
-                                  size: 85,
-                                  color: Colors.white,
-                                ),
-                              );
-                            },
-                          ),
-                          Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  primaryNavy.withOpacity(0.85),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const Positioned(
-                            left: 20,
-                            right: 20,
-                            bottom: 20,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'CADA ENTREGA CUENTA',
-                                  style: TextStyle(
-                                    color: Color(0xFFF5E17C),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.3,
-                                  ),
-                                ),
-                                SizedBox(height: 6),
-                                Text(
-                                  'Tu ruta comienza aquí.',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 23,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(height: 3),
-                                Text(
-                                  'Conecta, entrega y sigue avanzando.',
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                  Text(
+                    'CADA ENTREGA CUENTA',
+                    style: TextStyle(
+                      color: Color(0xFFF5E17C),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.6,
                     ),
                   ),
-
-                  const SizedBox(height: 32),
-
-                  // TÍTULO DEL LOGIN
-                  const Text(
-                    'Bienvenido de nuevo',
+                  SizedBox(height: 7),
+                  Text(
+                    'Tu ruta comienza aquí.',
                     style: TextStyle(
-                      fontSize: 27,
-                      fontWeight: FontWeight.bold,
-                      color: primaryNavy,
-                      letterSpacing: -0.7,
+                      color: Colors.white,
+                      fontSize: 25,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.6,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Inicia sesión para acceder a tu panel de repartidor.',
+                  SizedBox(height: 5),
+                  Text(
+                    'Conecta, entrega y sigue avanzando.',
                     style: TextStyle(
-                      fontSize: 14,
-                      color: textGray,
-                      height: 1.5,
-                    ),
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  // CORREO
-                  const Text(
-                    'Correo electrónico',
-                    style: TextStyle(
+                      color: Colors.white,
                       fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: primaryNavy,
-                    ),
-                  ),
-                  const SizedBox(height: 9),
-                  TextField(
-                    controller: _userController,
-                    keyboardType: TextInputType.emailAddress,
-                    autocorrect: false,
-                    decoration: InputDecoration(
-                      hintText: 'ejemplo@correo.com',
-                      hintStyle: const TextStyle(
-                        color: Color(0xFF9CA3AF),
-                        fontSize: 14,
-                      ),
-                      prefixIcon: const Icon(
-                        Icons.email_outlined,
-                        color: textGray,
-                        size: 21,
-                      ),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 17,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(
-                          color: lightBorder,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(
-                          color: primaryNavy,
-                          width: 1.5,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // CONTRASEÑA
-                  const Text(
-                    'Contraseña',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: primaryNavy,
-                    ),
-                  ),
-                  const SizedBox(height: 9),
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: _obscureText,
-                    onSubmitted: (_) {
-                      if (!_isLoading) _entrar();
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Ingresa tu contraseña',
-                      hintStyle: const TextStyle(
-                        color: Color(0xFF9CA3AF),
-                        fontSize: 14,
-                      ),
-                      prefixIcon: const Icon(
-                        Icons.lock_outline_rounded,
-                        color: textGray,
-                        size: 21,
-                      ),
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _obscureText = !_obscureText;
-                          });
-                        },
-                        icon: Icon(
-                          _obscureText
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          color: textGray,
-                          size: 20,
-                        ),
-                      ),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 17,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(
-                          color: lightBorder,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(
-                          color: primaryNavy,
-                          width: 1.5,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => ForgotPasswordScreen(
-                                    initialEmail: _userController.text.trim(),
-                                  ),
-                                ),
-                              );
-                            },
-                      style: TextButton.styleFrom(
-                        foregroundColor: accentPink,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 2,
-                        ),
-                        minimumSize: const Size(48, 40),
-                      ),
-                      child: const Text(
-                        '¿Olvidaste tu contraseña?',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // BOTÓN INICIAR SESIÓN
-                  SizedBox(
-                    width: double.infinity,
-                    height: 55,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _entrar,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: accentPink,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor:
-                            accentPink.withOpacity(0.6),
-                        elevation: 3,
-                        shadowColor: accentPink.withOpacity(0.25),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                      ),
-                      child: _isLoading
-                          ? const LulistrackActionLoading(color: Colors.white, size: 22)
-                          : const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Iniciar sesión',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(width: 10),
-                                Icon(
-                                  Icons.arrow_forward_rounded,
-                                  size: 19,
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // REGISTRO
-                  Center(
-                    child: Wrap(
-                      alignment: WrapAlignment.center,
-                      children: [
-                        const Text(
-                          '¿Todavía no tienes una cuenta? ',
-                          style: TextStyle(
-                            color: textGray,
-                            fontSize: 13,
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Solicita tu acceso al administrador desde el Dashboard de Lulistrack.',
-                                ),
-                              ),
-                            );
-                          },
-                          child: const Text(
-                            'Solicitar acceso',
-                            style: TextStyle(
-                              color: accentPink,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 27),
-
-                  // SEGURIDAD
-                  Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.verified_user_outlined,
-                          color: Color(0xFF16A36A),
-                          size: 17,
-                        ),
-                        const SizedBox(width: 7),
-                        Text(
-                          'Acceso seguro para repartidores',
-                          style: TextStyle(
-                            color: textGray.withOpacity(0.9),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 15),
-
-                  const Center(
-                    child: Text(
-                      'LULISTRACK PARA CONDUCTORES  ·  V 2.4',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF9CA3AF),
-                        letterSpacing: 0.8,
-                      ),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // CAMPOS DE TEXTO
+  // ============================================================
+
+  Widget _buildFieldLabel(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+        color: primaryNavy,
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({
+    required String hint,
+    required IconData icon,
+    Widget? suffixIcon,
+  }) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(
+        color: Color(0xFF9CA3AF),
+        fontSize: 14,
+      ),
+      prefixIcon: Icon(
+        icon,
+        color: textGray,
+        size: 21,
+      ),
+      suffixIcon: suffixIcon,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 15,
+        vertical: 18,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(
+          color: lightBorder,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(
+          color: primaryNavy,
+          width: 1.5,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(
+          color: Colors.red,
+        ),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(
+          color: Colors.red,
+          width: 1.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmailField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildFieldLabel('Correo electrónico'),
+        const SizedBox(height: 9),
+        TextField(
+          controller: _userController,
+          focusNode: _emailFocus,
+          keyboardType: TextInputType.emailAddress,
+          textInputAction: TextInputAction.next,
+          autocorrect: false,
+          enableSuggestions: false,
+          onSubmitted: (_) {
+            _passwordFocus.requestFocus();
+          },
+          decoration: _inputDecoration(
+            hint: 'ejemplo@correo.com',
+            icon: Icons.email_outlined,
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildFieldLabel('Contraseña'),
+        const SizedBox(height: 9),
+        TextField(
+          controller: _passwordController,
+          focusNode: _passwordFocus,
+          obscureText: _obscureText,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) {
+            if (!_isLoading) _entrar();
+          },
+          decoration: _inputDecoration(
+            hint: 'Ingresa tu contraseña',
+            icon: Icons.lock_outline_rounded,
+            suffixIcon: IconButton(
+              onPressed: () {
+                setState(() {
+                  _obscureText = !_obscureText;
+                });
+              },
+              icon: Icon(
+                _obscureText
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                color: textGray,
+                size: 20,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // BOTON PRINCIPAL
+  // ============================================================
+
+  Widget _buildLoginButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _entrar,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: accentPink,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: accentPink.withOpacity(0.6),
+          elevation: 3,
+          shadowColor: accentPink.withOpacity(0.25),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: _isLoading
+            ? const LulistrackActionLoading(
+          color: Colors.white,
+          size: 22,
+        )
+            : const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Iniciar sesión',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            SizedBox(width: 10),
+            Icon(
+              Icons.arrow_forward_rounded,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // SOLICITUD DE ACCESO
+  // ============================================================
+
+  Widget _buildRegistration() {
+    return Center(
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        children: [
+          const Text(
+            '¿Todavía no tienes una cuenta? ',
+            style: TextStyle(
+              color: textGray,
+              fontSize: 13,
+            ),
+          ),
+          GestureDetector(
+            onTap: () {
+              _showMessage(
+                'Solicita tu acceso al administrador '
+                    'desde el Dashboard de Lulistrack.',
+              );
+            },
+            child: const Text(
+              'Solicitar acceso',
+              style: TextStyle(
+                color: accentPink,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // SEGURIDAD Y VERSION
+  // ============================================================
+
+  Widget _buildSecurityFooter() {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.verified_user_outlined,
+              color: Color(0xFF16A36A),
+              size: 17,
+            ),
+            const SizedBox(width: 7),
+            Text(
+              'Acceso seguro para repartidores',
+              style: TextStyle(
+                color: textGray.withOpacity(0.9),
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 15),
+        const Text(
+          'LULISTRACK PARA CONDUCTORES  ·  V 2.4',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF9CA3AF),
+            letterSpacing: 0.8,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // INTERFAZ PRINCIPAL
+  // ============================================================
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: background,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Center(
+              child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 22,
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: 480,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeader(),
+
+                      const SizedBox(height: 25),
+
+                      _buildHeroImage(),
+
+                      const SizedBox(height: 31),
+
+                      const Text(
+                        'Bienvenido de nuevo',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: primaryNavy,
+                          letterSpacing: -0.9,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      const Text(
+                        'Inicia sesión para acceder a tu panel '
+                            'de repartidor.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: textGray,
+                          height: 1.5,
+                        ),
+                      ),
+
+                      const SizedBox(height: 27),
+
+                      _buildEmailField(),
+
+                      const SizedBox(height: 20),
+
+                      _buildPasswordField(),
+
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed:
+                          _isLoading ? null : _openForgotPassword,
+                          style: TextButton.styleFrom(
+                            foregroundColor: accentPink,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 5,
+                            ),
+                            minimumSize: const Size(48, 40),
+                          ),
+                          child: const Text(
+                            '¿Olvidaste tu contraseña?',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 15),
+
+                      _buildLoginButton(),
+
+                      const SizedBox(height: 25),
+
+                      _buildRegistration(),
+
+                      const SizedBox(height: 29),
+
+                      _buildSecurityFooter(),
+
+                      const SizedBox(height: 15),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
