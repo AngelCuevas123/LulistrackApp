@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'main_navigation.dart';
+import 'forgot_password_screen.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
 import '../services/biometric_service.dart';
@@ -473,7 +474,38 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 28),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => ForgotPasswordScreen(
+                                    initialEmail: _userController.text.trim(),
+                                  ),
+                                ),
+                              );
+                            },
+                      style: TextButton.styleFrom(
+                        foregroundColor: accentPink,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        minimumSize: const Size(48, 40),
+                      ),
+                      child: const Text(
+                        '¿Olvidaste tu contraseña?',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
 
                   // BOTÓN INICIAR SESIÓN
                   SizedBox(
