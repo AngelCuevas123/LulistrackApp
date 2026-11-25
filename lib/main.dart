@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -12,6 +10,8 @@ import 'screens/forgot_password_screen.dart';
 import 'services/api_service.dart';
 import 'screens/lulistrack_splash_screen.dart';
 import 'package:flutter/cupertino.dart';
+
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(
@@ -48,50 +48,31 @@ Future<void> main() async {
     if (authState.session == null) {
       ApiService.currentDriver = null;
     }
+
+    // Se registra antes de runApp para no perder el evento si el enlace
+    // de recuperación abre la aplicación desde cero.
+    if (authState.event == AuthChangeEvent.passwordRecovery) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        appNavigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => const ResetPasswordScreen(),
+          ),
+          (route) => false,
+        );
+      });
+    }
   });
 
   runApp(const LulistrackApp());
 }
 
-class LulistrackApp extends StatefulWidget {
+class LulistrackApp extends StatelessWidget {
   const LulistrackApp({super.key});
-
-  @override
-  State<LulistrackApp> createState() => _LulistrackAppState();
-}
-
-class _LulistrackAppState extends State<LulistrackApp> {
-  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
-  late final StreamSubscription<AuthState> _authSubscription;
-
-  @override
-  void initState() {
-    super.initState();
-    _authSubscription =
-        Supabase.instance.client.auth.onAuthStateChange.listen((authState) {
-      if (authState.event == AuthChangeEvent.passwordRecovery) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _navigatorKey.currentState?.pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (_) => const ResetPasswordScreen(),
-            ),
-            (route) => false,
-          );
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _authSubscription.cancel();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      navigatorKey: _navigatorKey,
+      navigatorKey: appNavigatorKey,
       title: 'Lulistrack',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
