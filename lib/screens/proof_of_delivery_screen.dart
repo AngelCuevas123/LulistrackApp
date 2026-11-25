@@ -110,7 +110,7 @@ class ProofOfDeliveryScreen extends StatelessWidget {
                     _buildRequirementCard(
                       icon: Icons.camera_alt_outlined,
                       title: 'Evidencia Fotografica',
-                      subtitle: 'Show the package and delivery location.',
+                      subtitle: 'Fotografía del paquete y del lugar de entrega.',
                       onTap: () {},
                     ),
                     const SizedBox(height: 12),
@@ -119,7 +119,7 @@ class ProofOfDeliveryScreen extends StatelessWidget {
                     _buildRequirementCard(
                       icon: Icons.edit_outlined,
                       title: 'Firma Digital',
-                      subtitle: 'Ask the recipient to sign with their finger.',
+                      subtitle: 'El destinatario registra su firma en la pantalla.',
                       onTap: () {},
                     ),
                     const SizedBox(height: 16),
