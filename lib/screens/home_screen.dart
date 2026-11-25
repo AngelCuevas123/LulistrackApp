@@ -314,9 +314,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'Hola, Conductor',
-                                  style: TextStyle(
+                                Text(
+                                  'Hola, ${(ApiService.currentDriver?.name.trim().split(' ').first ?? '').isEmpty ? 'Conductor' : ApiService.currentDriver!.name.trim().split(' ').first}',
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -416,6 +416,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     return ListView(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                       children: [
+                        _buildOverviewCard(orders.length, availableOrders.length),
+                        const SizedBox(height: 20),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -547,6 +549,121 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+    );
+  }
+
+  Widget _buildOverviewCard(int activeCount, int availableCount) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF213A81), Color(0xFF3156A5)],
+        ),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: primaryNavy.withOpacity(0.16),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.insights_rounded, color: Color(0xFFB7E7FC), size: 19),
+              SizedBox(width: 8),
+              Text(
+                'Resumen de actividad',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: _buildOverviewMetric(
+                  icon: Icons.local_shipping_outlined,
+                  value: activeCount,
+                  label: 'Entregas activas',
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 48,
+                color: Colors.white.withOpacity(0.20),
+              ),
+              Expanded(
+                child: _buildOverviewMetric(
+                  icon: Icons.inventory_2_outlined,
+                  value: availableCount,
+                  label: 'Pedidos nuevos',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverviewMetric({
+    required IconData icon,
+    required int value,
+    required String label,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.13),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    height: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
