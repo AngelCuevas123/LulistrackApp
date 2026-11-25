@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 typedef VoiceCommandCallback = Future<void> Function(String command);
+typedef VoiceSessionChanged = void Function(bool active);
 
 class VoiceAssistantService {
   VoiceAssistantService._();
@@ -18,6 +19,11 @@ class VoiceAssistantService {
   bool _processingCommand = false;
   bool _handsFreeEnabled = false;
   VoiceCommandCallback? _onCommand;
+  VoiceSessionChanged? _onSessionChanged;
+
+  void _notifySessionChanged() {
+    _onSessionChanged?.call(_sessionActive);
+  }
 
   bool get isListening => _isListening;
   bool get isSessionActive => _sessionActive;
@@ -45,6 +51,7 @@ class VoiceAssistantService {
 
   Future<bool> startListening({
     required VoiceCommandCallback onCommand,
+    VoiceSessionChanged? onSessionChanged,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final enabled = prefs.getBool('immersive_voice_assistant_enabled') ?? false;
@@ -53,19 +60,33 @@ class VoiceAssistantService {
     final available = await initialize();
     if (!available) return false;
 
+    if (_sessionActive) {
+      _onCommand = onCommand;
+      _onSessionChanged = onSessionChanged;
+      return _listenOnce();
+    }
+
     _onCommand = onCommand;
+    _onSessionChanged = onSessionChanged;
     _handsFreeEnabled =
         prefs.getBool('immersive_hands_free_enabled') ?? false;
     _sessionActive = true;
-    return _listenOnce();
+    _notifySessionChanged();
+    final started = await _listenOnce();
+    if (!started && !_speech.isListening) {
+      _sessionActive = false;
+      _isListening = false;
+      _notifySessionChanged();
+    }
+    return started;
   }
 
   Future<bool> _listenOnce() async {
-    if (!_sessionActive || _processingCommand || _speech.isListening) {
-      return false;
-    }
+    if (!_sessionActive) return false;
+    if (_processingCommand || _speech.isListening) return true;
 
-    await _speech.listen(
+    try {
+      await _speech.listen(
       localeId: 'es_MX',
       listenFor: const Duration(seconds: 12),
       pauseFor: const Duration(seconds: 3),
@@ -76,9 +97,15 @@ class VoiceAssistantService {
           _processCommand(result.recognizedWords.trim().toLowerCase());
         }
       },
-    );
-    _isListening = true;
-    return true;
+      );
+      _isListening = _speech.isListening;
+      return true;
+    } catch (_) {
+      _isListening = false;
+      _sessionActive = false;
+      _notifySessionChanged();
+      return false;
+    }
   }
 
   Future<void> _processCommand(String command) async {
@@ -110,12 +137,15 @@ class VoiceAssistantService {
       await _listenOnce();
     } else {
       _sessionActive = false;
+      _isListening = false;
+      _notifySessionChanged();
     }
   }
 
   Future<void> stopListening() async {
     _sessionActive = false;
     _isListening = false;
+    _notifySessionChanged();
     if (_speech.isListening) await _speech.stop();
   }
 
