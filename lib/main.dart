@@ -43,25 +43,48 @@ Future<void> main() async {
 
   // Mantener actualizado el token que utiliza ApiService cuando Supabase
   // renueva la sesión automáticamente.
-  Supabase.instance.client.auth.onAuthStateChange.listen((authState) {
-    ApiService.authToken = authState.session?.accessToken;
-    if (authState.session == null) {
-      ApiService.currentDriver = null;
-    }
+  Supabase.instance.client.auth.onAuthStateChange.listen(
+    (authState) {
+      ApiService.authToken = authState.session?.accessToken;
 
-    // Se registra antes de runApp para no perder el evento si el enlace
-    // de recuperación abre la aplicación desde cero.
-    if (authState.event == AuthChangeEvent.passwordRecovery) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        appNavigatorKey.currentState?.pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (_) => const ResetPasswordScreen(),
-          ),
-          (route) => false,
-        );
-      });
-    }
-  });
+      if (authState.session == null) {
+        ApiService.currentDriver = null;
+      }
+
+      debugPrint(
+        'Lulistrack Auth: ${authState.event} | '
+        'session: ${authState.session != null}',
+      );
+
+      // Supabase Flutter procesa los enlaces de autenticación después de
+      // completar initialize(). Este listener se registra inmediatamente
+      // después de initialize() para recibir también passwordRecovery.
+      if (authState.event == AuthChangeEvent.passwordRecovery) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final navigator = appNavigatorKey.currentState;
+          if (navigator == null) {
+            debugPrint(
+              'No se pudo abrir ResetPasswordScreen: Navigator no disponible.',
+            );
+            return;
+          }
+
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => const ResetPasswordScreen(),
+            ),
+            (route) => false,
+          );
+        });
+      }
+    },
+    onError: (Object error, StackTrace stackTrace) {
+      // Supabase también envía por este stream errores de refresh de sesión.
+      // Sin este manejador, Dart puede tratarlos como excepciones no capturadas.
+      debugPrint('Error en el stream de autenticación de Supabase: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    },
+  );
 
   runApp(const LulistrackApp());
 }
