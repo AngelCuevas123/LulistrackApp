@@ -138,29 +138,25 @@ class OrderDetailScreen extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              InkWell(
-                                onTap: () {},
-                                borderRadius: BorderRadius.circular(16),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFEEF2FF),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: const Column(
-                                    children: [
-                                      Icon(Icons.phone_outlined, color: primaryNavy, size: 20),
-                                      SizedBox(height: 4),
-                                      Text(
-                                        'Llamar',
-                                        style: TextStyle(
-                                          color: primaryNavy,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: const Column(
+                                  children: [
+                                    Icon(Icons.phone_disabled_outlined, color: textGray, size: 20),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      'Sin teléfono',
+                                      style: TextStyle(
+                                        color: textGray,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
