@@ -47,14 +47,8 @@ class _ImmersiveSettingsScreenState extends State<ImmersiveSettingsScreen> {
   }
 
   Future<void> _setVoiceAssistant(bool value) async {
-    setState(() {
-      _voiceAssistantEnabled = value;
-      if (!value) _handsFreeEnabled = false;
-    });
+    setState(() => _voiceAssistantEnabled = value);
     await _savePreference('immersive_voice_assistant_enabled', value);
-    if (!value) {
-      await _savePreference('immersive_hands_free_enabled', false);
-    }
   }
 
   @override
