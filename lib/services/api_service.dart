@@ -254,6 +254,42 @@ class ApiService {
     );
   }
 
+  // Calcula una ruta desde la ubicación GPS actual hasta un pedido asignado.
+  static Future<Map<String, dynamic>> previewRoute({
+    required String orderId,
+    required double originLatitude,
+    required double originLongitude,
+    String preference = 'recommended',
+  }) async {
+    if (authToken == null || authToken!.isEmpty) {
+      throw Exception('Inicia sesión para consultar la navegación.');
+    }
+    final response = await http.post(
+      Uri.parse(baseUrl + '/routes/preview'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + authToken!,
+      },
+      body: json.encode({
+        'order_id': orderId,
+        'origin_latitude': originLatitude,
+        'origin_longitude': originLongitude,
+        'preference': preference,
+      }),
+    ).timeout(const Duration(seconds: 35));
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+      if (decoded is Map<String, dynamic>) return decoded;
+      throw Exception('El servidor devolvió una ruta con formato inválido.');
+    }
+    var detail = 'No se pudo calcular la ruta (' + response.statusCode.toString() + ').';
+    try {
+      final decoded = json.decode(response.body);
+      if (decoded is Map && decoded['detail'] != null) detail = decoded['detail'].toString();
+    } catch (_) {}
+    throw Exception(detail);
+  }
+
   // Los errores de red se propagan; los HTTP conservan su código para clasificarlos.
   static Future<bool> submitProofOfDelivery({
     required String orderId,
