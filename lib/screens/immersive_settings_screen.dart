@@ -130,7 +130,7 @@ class _ImmersiveSettingsScreenState extends State<ImmersiveSettingsScreen> {
                 _settingTile(
                   icon: Icons.vibration_rounded,
                   title: 'Vibraciones hápticas',
-                  subtitle: 'Señales al recibir pedidos, confirmar entregas o detectar errores.',
+                  subtitle: 'Patrones distintos para pedidos nuevos, entregas, incidencias y errores de sincronización.',
                   value: _hapticsEnabled,
                   onChanged: _setHaptics,
                 ),
