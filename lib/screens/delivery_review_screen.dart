@@ -78,10 +78,8 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
                 !result.syncedIds.contains(existingLocalId));
         final error = result?.rejected[existingLocalId];
 
-        if (pending) {
-          await HapticService.warning();
-        } else {
-          await HapticService.success();
+        if (alreadySynced) {
+          await HapticService.deliveryCompleted();
         }
         if (!mounted) return;
         Navigator.pushReplacement(
@@ -172,12 +170,6 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
       final pendingSync = syncResult.pendingIds.contains(localId);
       final syncError = syncResult.rejected[localId];
 
-      if (pendingSync) {
-        await HapticService.warning();
-      } else {
-        await HapticService.success();
-      }
-
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
@@ -197,7 +189,7 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
       );
     } catch (error) {
       debugPrint('Error al guardar la entrega localmente: $error');
-      await HapticService.error();
+      await HapticService.failure();
       if (mounted) {
         await LulistrackDialog.error(
           context,
