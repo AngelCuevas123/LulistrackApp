@@ -17,7 +17,6 @@ class VoiceAssistantService {
   bool _isListening = false;
   bool _sessionActive = false;
   bool _processingCommand = false;
-  bool _handsFreeEnabled = false;
   VoiceCommandCallback? _onCommand;
   VoiceSessionChanged? _onSessionChanged;
 
@@ -34,21 +33,18 @@ class VoiceAssistantService {
     final available = await _speech.initialize(
       onStatus: (status) {
         _isListening = status == 'listening';
+        // Si el reconocimiento termina por silencio o timeout, cerrar la sesión.
+        // Cuando hay una frase final, _processCommand se encarga del cierre.
         if (status == 'done' && _sessionActive && !_processingCommand) {
-          if (_handsFreeEnabled) {
-            Future<void>.delayed(const Duration(milliseconds: 350), () {
-              if (_sessionActive && !_processingCommand && !_speech.isListening) {
-                _listenOnce();
-              }
-            });
-          } else {
-            _sessionActive = false;
-            _notifySessionChanged();
-          }
+          _sessionActive = false;
+          _isListening = false;
+          _notifySessionChanged();
         }
       },
       onError: (_) {
         _isListening = false;
+        _sessionActive = false;
+        _notifySessionChanged();
       },
     );
 
@@ -80,8 +76,6 @@ class VoiceAssistantService {
 
     _onCommand = onCommand;
     _onSessionChanged = onSessionChanged;
-    _handsFreeEnabled =
-        prefs.getBool('immersive_hands_free_enabled') ?? false;
     _sessionActive = true;
     _notifySessionChanged();
     final started = await _listenOnce();
@@ -101,7 +95,7 @@ class VoiceAssistantService {
       await _speech.listen(
       localeId: 'es_MX',
       listenFor: const Duration(seconds: 12),
-      pauseFor: const Duration(seconds: 3),
+      pauseFor: const Duration(seconds: 2),
       onResult: (result) {
         if (result.finalResult &&
             result.recognizedWords.trim().isNotEmpty &&
@@ -123,7 +117,19 @@ class VoiceAssistantService {
   Future<void> _processCommand(String command) async {
     if (_processingCommand) return;
     _processingCommand = true;
+
+    // Comportamiento tipo buscador: cerrar el micrófono al detectar la frase
+    // final y antes de ejecutar la consulta o reproducir la respuesta.
+    _sessionActive = false;
     _isListening = false;
+    _notifySessionChanged();
+    if (_speech.isListening) {
+      try {
+        await _speech.stop();
+      } catch (_) {
+        // La consulta debe poder procesarse aunque el plugin ya haya detenido el audio.
+      }
+    }
 
     try {
       await _onCommand?.call(command);
@@ -131,28 +137,6 @@ class VoiceAssistantService {
       // Un fallo al ejecutar un comando no debe dejar el estado de voz bloqueado.
     } finally {
       _processingCommand = false;
-    }
-
-    if (!_sessionActive) return;
-
-    final prefs = await SharedPreferences.getInstance();
-    final assistantEnabled =
-        prefs.getBool('immersive_voice_assistant_enabled') ?? false;
-    _handsFreeEnabled =
-        prefs.getBool('immersive_hands_free_enabled') ?? false;
-
-    if (!assistantEnabled) {
-      await stopListening();
-      return;
-    }
-
-    if (_handsFreeEnabled && _sessionActive) {
-      await Future<void>.delayed(const Duration(milliseconds: 350));
-      await _listenOnce();
-    } else {
-      _sessionActive = false;
-      _isListening = false;
-      _notifySessionChanged();
     }
   }
 
