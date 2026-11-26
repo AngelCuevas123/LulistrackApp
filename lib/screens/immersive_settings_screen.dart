@@ -17,7 +17,6 @@ class _ImmersiveSettingsScreenState extends State<ImmersiveSettingsScreen> {
 
   bool _hapticsEnabled = true;
   bool _voiceAssistantEnabled = false;
-  bool _handsFreeEnabled = false;
   bool _isLoading = true;
 
   @override
@@ -33,8 +32,6 @@ class _ImmersiveSettingsScreenState extends State<ImmersiveSettingsScreen> {
       _hapticsEnabled = prefs.getBool('immersive_haptics_enabled') ?? true;
       _voiceAssistantEnabled =
           prefs.getBool('immersive_voice_assistant_enabled') ?? false;
-      _handsFreeEnabled =
-          prefs.getBool('immersive_hands_free_enabled') ?? false;
       _isLoading = false;
     });
   }
@@ -57,17 +54,6 @@ class _ImmersiveSettingsScreenState extends State<ImmersiveSettingsScreen> {
     await _savePreference('immersive_voice_assistant_enabled', value);
     if (!value) {
       await _savePreference('immersive_hands_free_enabled', false);
-    }
-  }
-
-  Future<void> _setHandsFree(bool value) async {
-    setState(() {
-      _handsFreeEnabled = value;
-      if (value) _voiceAssistantEnabled = true;
-    });
-    await _savePreference('immersive_hands_free_enabled', value);
-    if (value) {
-      await _savePreference('immersive_voice_assistant_enabled', true);
     }
   }
 
@@ -126,7 +112,7 @@ class _ImmersiveSettingsScreenState extends State<ImmersiveSettingsScreen> {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              'Configura vibraciones, comandos de voz y el modo manos libres.',
+                              'Configura vibraciones y comandos de voz. La escucha se detiene automáticamente al terminar cada frase.',
                               style: TextStyle(
                                   color: Colors.white70, fontSize: 12),
                             ),
@@ -171,15 +157,6 @@ class _ImmersiveSettingsScreenState extends State<ImmersiveSettingsScreen> {
                   subtitle: 'Permite reconocer comandos y escuchar respuestas de Lulistrack.',
                   value: _voiceAssistantEnabled,
                   onChanged: _setVoiceAssistant,
-                ),
-                const SizedBox(height: 10),
-                _settingTile(
-                  icon: Icons.headset_mic_rounded,
-                  title: 'Modo manos libres',
-                  subtitle: 'Activa la interacción hablada para consultar pedidos sin navegar manualmente. Requiere el asistente de voz.',
-                  value: _handsFreeEnabled,
-                  onChanged: _setHandsFree,
-                  enabled: _voiceAssistantEnabled || _handsFreeEnabled,
                 ),
                 const SizedBox(height: 14),
                 Container(
