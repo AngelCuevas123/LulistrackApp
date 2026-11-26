@@ -30,14 +30,14 @@ class HapticService {
 
   /// Pedido nuevo disponible: toque breve y discreto.
   static Future<void> newOrder() async {
-    if (await _canPlay('new_order', cooldownMs: 1800)) {
+    if (await _canPlay('order_alert', cooldownMs: 1800)) {
       await HapticFeedback.selectionClick();
     }
   }
 
   /// Notificación push recibida con la app en primer plano.
   static Future<void> notificationReceived() async {
-    if (await _canPlay('notification_received', cooldownMs: 1800)) {
+    if (await _canPlay('order_alert', cooldownMs: 1800)) {
       await HapticFeedback.selectionClick();
     }
   }
@@ -83,7 +83,7 @@ class HapticService {
     }
   }
 
-  /// Evidencia pendiente que finalmente se sincronizó.
+  /// La sincronización de evidencia terminó correctamente.
   static Future<void> syncRecovered() async {
     if (await _canPlay('sync_recovered')) {
       await HapticFeedback.mediumImpact();
