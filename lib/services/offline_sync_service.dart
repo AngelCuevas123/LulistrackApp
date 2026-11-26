@@ -4,6 +4,7 @@ import 'dart:io';
 import 'api_service.dart';
 import 'offline_database.dart';
 import 'offline_evidence_storage.dart';
+import 'haptic_service.dart';
 
 class DeliverySyncResult {
   final Set<String> syncedIds;
@@ -43,12 +44,14 @@ class OfflineSyncService {
   Future<DeliverySyncResult> _syncPendingDeliveries() async {
     if (ApiService.authToken == null || ApiService.authToken!.isEmpty) {
       final pending = await OfflineDatabase.instance.getPendingDeliveries();
+      final pendingIds = {
+        for (final item in pending)
+          if (item['local_id'] != null) item['local_id'].toString(),
+      };
+      if (pendingIds.isNotEmpty) await HapticService.deliveryPending();
       return DeliverySyncResult(
         syncedIds: <String>{},
-        pendingIds: {
-          for (final item in pending)
-            if (item['local_id'] != null) item['local_id'].toString(),
-        },
+        pendingIds: pendingIds,
         rejected: <String, String>{},
       );
     }
@@ -172,6 +175,14 @@ class OfflineSyncService {
           pendingIds.add(localId);
         }
       }
+    }
+
+    if (rejected.isNotEmpty) {
+      await HapticService.failure();
+    } else if (pendingIds.isNotEmpty) {
+      await HapticService.deliveryPending();
+    } else if (syncedIds.isNotEmpty) {
+      await HapticService.syncRecovered();
     }
 
     return DeliverySyncResult(
