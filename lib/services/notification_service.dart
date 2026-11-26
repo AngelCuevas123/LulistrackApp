@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'api_service.dart';
+import 'haptic_service.dart';
 
 class NotificationService {
   static StreamSubscription<String>? _installationSubscription;
@@ -105,7 +106,7 @@ class NotificationService {
     if (_foregroundSubscription != null) return;
 
     _foregroundSubscription = FirebaseMessaging.onMessage.listen(
-          (RemoteMessage message) {
+          (RemoteMessage message) async {
         debugPrint(
           'Notificación recibida: ${message.notification?.title}',
         );
@@ -113,6 +114,10 @@ class NotificationService {
         debugPrint(
           'Contenido: ${message.notification?.body}',
         );
+
+        if (message.notification != null || message.data.isNotEmpty) {
+          await HapticService.notificationReceived();
+        }
       },
     );
   }
