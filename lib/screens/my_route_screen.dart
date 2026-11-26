@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/lulistrack_loading.dart';
 import '../models/order_model.dart';
 import '../services/api_service.dart';
-import 'route_list_screen.dart';
+import 'navigation_screen.dart';
 
 class MyRouteScreen extends StatefulWidget {
   const MyRouteScreen({super.key});
@@ -374,14 +374,16 @@ class _MyRouteScreenState extends State<MyRouteScreen> {
                           width: double.infinity,
                           height: 52,
                           child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ListScreen(),
-                                ),
-                              );
-                            },
+                            onPressed: nextOrder == null
+                                ? null
+                                : () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => NavigationScreen(order: nextOrder),
+                                      ),
+                                    );
+                                  },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: accentPink,
                               elevation: 3,
@@ -391,7 +393,7 @@ class _MyRouteScreenState extends State<MyRouteScreen> {
                               ),
                             ),
                             child: const Text(
-                              'Continuar Ruta',
+                              'Abrir navegación',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
