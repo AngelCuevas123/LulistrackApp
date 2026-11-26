@@ -50,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ]);
   }
 
-  Future<void> _refreshOrders() async {
+  Future<void> _refreshOrders({bool notifyNewOrders = true}) async {
     final future = _loadOrders();
     setState(() {
       _futureOrders = future;
@@ -60,12 +60,10 @@ class _HomeScreenState extends State<HomeScreen> {
       final activeCount = orders[0].length;
       final availableCount = orders[1].length;
 
-      if (_lastActiveOrderCount != null &&
-          activeCount > _lastActiveOrderCount!) {
-        await HapticService.success();
-      } else if (_lastAvailableOrderCount != null &&
+      if (notifyNewOrders &&
+          _lastAvailableOrderCount != null &&
           availableCount > _lastAvailableOrderCount!) {
-        await HapticService.light();
+        await HapticService.newOrder();
       }
 
       _lastActiveOrderCount = activeCount;
@@ -120,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       await ApiService.claimOrder(order.id);
-      await HapticService.success();
+      await HapticService.orderAccepted();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -129,9 +127,9 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: Colors.green,
         ),
       );
-      await _refreshOrders();
+      await _refreshOrders(notifyNewOrders: false);
     } catch (e) {
-      await HapticService.error();
+      await HapticService.failure();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
