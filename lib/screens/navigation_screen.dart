@@ -147,8 +147,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
     var minLat = points.first.latitude, maxLat = minLat;
     var minLon = points.first.longitude, maxLon = minLon;
     for (final p in points) {
-      minLat = math.min(minLat, p.latitude); maxLat = math.max(maxLat, p.latitude);
-      minLon = math.min(minLon, p.longitude); maxLon = math.max(maxLon, p.longitude);
+      minLat = math.min(minLat, p.latitude).toDouble(); maxLat = math.max(maxLat, p.latitude).toDouble();
+      minLon = math.min(minLon, p.longitude).toDouble(); maxLon = math.max(maxLon, p.longitude).toDouble();
     }
     try {
       await _map!.animateCamera(CameraUpdate.newLatLngBounds(
