@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/haptic_service.dart';
 
 class BugReportScreen extends StatefulWidget {
   const BugReportScreen({super.key});
@@ -68,6 +69,7 @@ class _BugReportScreenState extends State<BugReportScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Por favor describe el error antes de enviar')));
                     return;
                   }
+                  HapticService.incidentReported();
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reporte enviado con éxito al equipo de desarrollo')));
                   Navigator.pop(context);
                 },
