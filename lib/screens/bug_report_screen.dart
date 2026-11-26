@@ -64,12 +64,12 @@ class _BugReportScreenState extends State<BugReportScreen> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (_reportController.text.trim().isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Por favor describe el error antes de enviar')));
                     return;
                   }
-                  HapticService.incidentReported();
+                  await HapticService.incidentReported();
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reporte enviado con éxito al equipo de desarrollo')));
                   Navigator.pop(context);
                 },
