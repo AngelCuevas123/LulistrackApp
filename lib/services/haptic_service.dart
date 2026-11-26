@@ -35,6 +35,13 @@ class HapticService {
     }
   }
 
+  /// Notificación push recibida con la app en primer plano.
+  static Future<void> notificationReceived() async {
+    if (await _canPlay('notification_received', cooldownMs: 1800)) {
+      await HapticFeedback.selectionClick();
+    }
+  }
+
   /// Pedido asignado al repartidor: confirmación media.
   static Future<void> orderAccepted() async {
     if (await _canPlay('order_accepted')) {
