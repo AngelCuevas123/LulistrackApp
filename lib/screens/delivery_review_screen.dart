@@ -167,7 +167,9 @@ class _DeliveryReviewScreenState extends State<DeliveryReviewScreen> {
 
       final syncResult =
           await OfflineSyncService.instance.syncPendingDeliveries();
-      final pendingSync = syncResult.pendingIds.contains(localId);
+      final pendingSync = syncResult.pendingIds.contains(localId) ||
+          syncResult.rejected.containsKey(localId) ||
+          !syncResult.syncedIds.contains(localId);
       final syncError = syncResult.rejected[localId];
 
       if (!mounted) return;
