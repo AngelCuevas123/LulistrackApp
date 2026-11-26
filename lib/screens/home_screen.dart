@@ -5,6 +5,7 @@ import '../services/haptic_service.dart';
 import '../services/voice_assistant_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'order_detail_screen.dart';
+import 'navigation_screen.dart';
 import 'bug_report_screen.dart';
 import '../widgets/lulistrack_loading.dart';
 import '../widgets/lulistrack_dialog.dart';
@@ -117,17 +118,16 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!confirmed || !mounted) return;
 
     try {
-      await ApiService.claimOrder(order.id);
+      final claimedOrder = await ApiService.claimOrder(order.id);
       await HapticService.orderAccepted();
-
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('¡Pedido asignado correctamente!'),
-          backgroundColor: Colors.green,
-        ),
-      );
       await _refreshOrders(notifyNewOrders: false);
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => NavigationScreen(order: claimedOrder)),
+      );
+      if (mounted) await _refreshOrders(notifyNewOrders: false);
     } catch (e) {
       await HapticService.failure();
       if (!mounted) return;
