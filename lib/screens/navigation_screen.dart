@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -351,10 +352,21 @@ class _NavigationScreenState extends State<NavigationScreen> {
         if (_points.length >= 2)
           PolylineLayer(
             polylines: [
+              // Halo exterior para dar profundidad visual a la ruta.
               Polyline(
                 points: _points,
-                color: navy,
+                color: const Color(0x553B82F6),
+                strokeWidth: 13,
+              ),
+              Polyline(
+                points: _points,
+                color: const Color(0xFF2563EB),
                 strokeWidth: 6,
+              ),
+              Polyline(
+                points: _points,
+                color: const Color(0xFFEFF6FF),
+                strokeWidth: 1.4,
               ),
             ],
           ),
@@ -373,228 +385,364 @@ class _NavigationScreenState extends State<NavigationScreen> {
     );
   }
 
+  Widget _glassPanel({required Widget child, EdgeInsets padding = const EdgeInsets.all(14)}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Container(
+          padding: padding,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(.88),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withOpacity(.85), width: 1.2),
+            boxShadow: const [
+              BoxShadow(color: Color(0x260F172A), blurRadius: 24, offset: Offset(0, 10)),
+            ],
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  Widget _roundMapButton({required IconData icon, required VoidCallback onTap, String? tooltip}) {
+    return Material(
+      color: Colors.white.withOpacity(.94),
+      shape: const CircleBorder(),
+      elevation: 5,
+      shadowColor: const Color(0x330F172A),
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onTap,
+        icon: Icon(icon, color: navy, size: 22),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: page,
-      body: SafeArea(
-        child: _loading
-            ? const LulistrackLoading(
+      backgroundColor: const Color(0xFFE8EEF7),
+      body: _loading
+          ? const SafeArea(
+              child: LulistrackLoading(
                 title: 'Preparando navegación',
                 subtitle: 'Obteniendo tu ubicación y trazando el recorrido.',
                 icon: Icons.navigation_rounded,
-              )
-            : Column(
-                children: [
-                  Container(
-                    color: navy,
-                    padding: const EdgeInsets.fromLTRB(12, 8, 16, 14),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+              ),
+            )
+          : Stack(
+              children: [
+                Positioned.fill(child: _buildMap()),
+                // Degradado superior para separar visualmente los controles del mapa.
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 190,
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [const Color(0xB30B1738), Colors.transparent],
                         ),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'NAVEGACIÓN ACTIVA',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 10,
-                                  letterSpacing: 1,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(height: 3),
-                              Text(
-                                'Tu siguiente entrega',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(Icons.gps_fixed_rounded, color: Color(0xFF86EFAC)),
-                        const SizedBox(width: 5),
-                        const Text(
-                          'GPS',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_error != null)
-                    Container(
-                      width: double.infinity,
-                      color: const Color(0xFFFFF7ED),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      child: Text(
-                        _error!,
-                        style: const TextStyle(color: Color(0xFF9A3412), fontSize: 12),
                       ),
                     ),
-                  Expanded(child: _buildMap()),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(18, 15, 18, 18),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-                      boxShadow: [
-                        BoxShadow(color: Color(0x18000000), blurRadius: 18, offset: Offset(0, -5)),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 42,
-                              height: 42,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEEF2FF),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: const Icon(Icons.turn_right_rounded, color: navy, size: 25),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'SIGUIENTE INDICACIÓN',
-                                    style: TextStyle(
-                                      color: Color(0xFF94A3B8),
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: .7,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    _instruction,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(color: navy, fontWeight: FontWeight.bold, fontSize: 14),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: _recenter,
-                              tooltip: 'Centrar mi ubicación',
-                              icon: const Icon(Icons.my_location_rounded, color: navy),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            _Metric(label: 'RUTA', value: _distance(_routeMeters)),
-                            const SizedBox(width: 24),
-                            _Metric(
-                              label: 'TIEMPO EST.',
-                              value: _routeMinutes == null ? '--' : '${_routeMinutes!.round()} min',
-                            ),
-                            const Spacer(),
-                            if (_routeLoading)
-                              const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            else
-                              DropdownButton<String>(
-                                value: _preference,
-                                underline: const SizedBox.shrink(),
-                                borderRadius: BorderRadius.circular(12),
-                                items: const [
-                                  DropdownMenuItem(value: 'recommended', child: Text('Recomendada')),
-                                  DropdownMenuItem(value: 'fastest', child: Text('Más rápida')),
-                                  DropdownMenuItem(value: 'shortest', child: Text('Más corta')),
-                                ],
-                                onChanged: _selectPreference,
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: _nearDestination ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(13),
-                          ),
+                  ),
+                ),
+                SafeArea(
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                        child: _glassPanel(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
                           child: Row(
                             children: [
-                              Icon(
-                                _nearDestination ? Icons.location_on_rounded : Icons.flag_outlined,
-                                color: _nearDestination ? const Color(0xFF15803D) : navy,
-                                size: 19,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _nearDestination
-                                      ? 'Estás cerca del domicilio. Confirma cuando estés en el lugar.'
-                                      : 'Destino: ${widget.order.address}${widget.order.colony.isEmpty ? '' : ', ${widget.order.colony}'}',
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: _nearDestination ? const Color(0xFF166534) : const Color(0xFF475569),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                              Material(
+                                color: navy,
+                                borderRadius: BorderRadius.circular(16),
+                                child: IconButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
                                 ),
                               ),
-                              if (_destinationMeters != null)
-                                Text(
-                                  _distance(_destinationMeters),
-                                  style: const TextStyle(color: navy, fontSize: 11, fontWeight: FontWeight.bold),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'LULISTRACK NAV',
+                                      style: TextStyle(
+                                        color: Color(0xFF64748B),
+                                        fontSize: 9,
+                                        letterSpacing: 1.5,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                    SizedBox(height: 3),
+                                    Text(
+                                      'Entrega en camino',
+                                      style: TextStyle(
+                                        color: Color(0xFF142B62),
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFDCFCE7),
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.gps_fixed_rounded, color: Color(0xFF15803D), size: 14),
+                                    SizedBox(width: 5),
+                                    Text(
+                                      'GPS',
+                                      style: TextStyle(
+                                        color: Color(0xFF166534),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: ElevatedButton.icon(
-                            onPressed: _openingProof ? null : _confirmArrival,
-                            icon: _openingProof
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                  )
-                                : const Icon(Icons.check_circle_outline_rounded, color: Colors.white),
-                            label: Text(
-                              _openingProof ? 'Abriendo comprobante...' : 'Ya llegué al domicilio',
-                              style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: pink,
-                              disabledBackgroundColor: pink.withOpacity(.6),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              elevation: 2,
+                      ),
+                      if (_error != null)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                          child: _glassPanel(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.warning_amber_rounded, color: Color(0xFFB45309)),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _error!,
+                                    style: const TextStyle(color: Color(0xFF92400E), fontSize: 11),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                      const Spacer(),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 16, bottom: 14),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              _roundMapButton(
+                                icon: Icons.my_location_rounded,
+                                onTap: _recenter,
+                                tooltip: 'Centrar mi ubicación',
+                              ),
+                              const SizedBox(height: 10),
+                              _roundMapButton(
+                                icon: Icons.route_rounded,
+                                onTap: () {
+                                  if (_position != null) _fitRoute(_points);
+                                },
+                                tooltip: 'Ver ruta completa',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      _glassPanel(
+                        padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 46,
+                                  height: 46,
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [Color(0xFF3156B8), Color(0xFF172D70)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: const [
+                                      BoxShadow(color: Color(0x44315AB8), blurRadius: 12, offset: Offset(0, 5)),
+                                    ],
+                                  ),
+                                  child: const Icon(Icons.turn_right_rounded, color: Colors.white, size: 27),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'SIGUIENTE MANIOBRA',
+                                        style: TextStyle(
+                                          color: Color(0xFF94A3B8),
+                                          fontSize: 9,
+                                          letterSpacing: 1,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _instruction,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Color(0xFF172D70),
+                                          fontSize: 14,
+                                          height: 1.2,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (_routeLoading)
+                                  const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2.3, color: Color(0xFF3156B8)),
+                                  )
+                                else
+                                  const Icon(Icons.navigation_rounded, color: Color(0xFF3156B8), size: 22),
+                              ],
+                            ),
+                            const SizedBox(height: 15),
+                            Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 13),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5FF),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(color: const Color(0xFFE1E9FF)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(child: _Metric(label: 'DISTANCIA TOTAL', value: _distance(_routeMeters))),
+                                  Container(width: 1, height: 34, color: const Color(0xFFD8E1F2)),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: _Metric(
+                                      label: 'TIEMPO ESTIMADO',
+                                      value: _routeMinutes == null ? '--' : '${_routeMinutes!.round()} min',
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  PopupMenuButton<String>(
+                                    tooltip: 'Preferencia de ruta',
+                                    initialValue: _preference,
+                                    onSelected: _selectPreference,
+                                    icon: const Icon(Icons.tune_rounded, color: Color(0xFF3156B8)),
+                                    itemBuilder: (_) => const [
+                                      PopupMenuItem(value: 'recommended', child: Text('Recomendada')),
+                                      PopupMenuItem(value: 'fastest', child: Text('Más rápida')),
+                                      PopupMenuItem(value: 'shortest', child: Text('Más corta')),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 11),
+                            Row(
+                              children: [
+                                Icon(
+                                  _nearDestination ? Icons.near_me_rounded : Icons.location_on_rounded,
+                                  color: _nearDestination ? const Color(0xFF15803D) : const Color(0xFFC23B75),
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 7),
+                                Expanded(
+                                  child: Text(
+                                    _nearDestination
+                                        ? '¡Ya estás cerca! Confirma al llegar al domicilio.'
+                                        : '${widget.order.address}${widget.order.colony.isEmpty ? '' : ', ${widget.order.colony}'}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Color(0xFF475569),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                if (_destinationMeters != null)
+                                  Text(
+                                    _distance(_destinationMeters),
+                                    style: const TextStyle(
+                                      color: Color(0xFF172D70),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 13),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 54,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFFD64B83), Color(0xFFB72F6C)],
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(17),
+                                  boxShadow: const [
+                                    BoxShadow(color: Color(0x33C23B75), blurRadius: 14, offset: Offset(0, 6)),
+                                  ],
+                                ),
+                                child: ElevatedButton.icon(
+                                  onPressed: _openingProof ? null : _confirmArrival,
+                                  icon: _openingProof
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                        )
+                                      : const Icon(Icons.check_circle_rounded, color: Colors.white),
+                                  label: Text(
+                                    _openingProof ? 'Abriendo comprobante...' : 'Ya llegué al domicilio',
+                                    style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    disabledBackgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17)),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-      ),
+                ),
+              ],
+            ),
     );
   }
 }
