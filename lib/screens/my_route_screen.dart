@@ -276,28 +276,37 @@ class _MyRouteScreenState extends State<MyRouteScreen> {
                                           child: Divider(height: 1, color: Color(0xFFF1F5F9)),
                                         ),
                                         Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             const Icon(Icons.location_on_outlined, size: 20, color: textGray),
                                             const SizedBox(width: 10),
-                                            Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  nextOrder.address,
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: primaryNavy,
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    nextOrder.address,
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    softWrap: true,
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: primaryNavy,
+                                                    ),
                                                   ),
-                                                ),
-                                                Text(
-                                                  'Colonia ${nextOrder.colony} · Lulistrack',
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: textGray,
+                                                  const SizedBox(height: 3),
+                                                  Text(
+                                                    'Colonia ${nextOrder.colony} · Lulistrack',
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      color: textGray,
+                                                    ),
                                                   ),
-                                                ),
-                                              ],
+                                                ],
+                                              ),
                                             ),
                                           ],
                                         ),
